@@ -28,12 +28,13 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       %Caps{format: :u8},
     ]}
   }
-
+  #TODO: add passing target caps as argument
   def handle_init _ do
     {:ok, %{native: nil}}
   end
 
   def handle_caps :sink, caps, state do
+    #TODO: pass new caps to native
     case ConverterNative.create do
       {:ok, native} -> {:ok, [{:caps, {:source, caps}}], %{state | native: native}}
       {:error, reason} -> {:error, reason, state}
@@ -45,6 +46,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
   def handle_buffer :sink, _caps, %Membrane.Buffer{payload: payload} = buffer, %{native: native} = state do
     case ConverterNative.convert native, payload do
+      {:ok, <<>>} -> {:ok, state}
       {:ok, result} -> {:ok, [{:send, {:source, %Membrane.Buffer{buffer | payload: result}}}], state}
       {:error, desc} -> {:error, desc}
     end

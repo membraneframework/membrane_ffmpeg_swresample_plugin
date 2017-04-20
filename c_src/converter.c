@@ -13,12 +13,13 @@ ErlNifResourceType *RES_CONVERTER_HANDLE_TYPE;
 
 char* init(ConverterHandle* handle) {
   int64_t src_ch_layout = AV_CH_LAYOUT_STEREO, dst_ch_layout = AV_CH_LAYOUT_STEREO;
-  int src_rate = 48000, dst_rate = 44100;
+  int src_rate = 48000, dst_rate = 24000;
   enum AVSampleFormat src_sample_fmt = AV_SAMPLE_FMT_S16, dst_sample_fmt = AV_SAMPLE_FMT_U8;
 
   struct SwrContext* swr_ctx = swr_alloc();
   if (!swr_ctx)
       return "Could not allocate resampler context";
+
 
   /* set options */
   av_opt_set_int(swr_ctx, "in_channel_layout",    src_ch_layout, 0);
@@ -30,7 +31,7 @@ char* init(ConverterHandle* handle) {
   av_opt_set_int(swr_ctx, "dither_method", SWR_DITHER_RECTANGULAR, 0);
 
   if(swr_init(swr_ctx) < 0) {
-    swr_free(&swr_ctx);
+    //swr_free(&swr_ctx);
     return "Failed to initialize the resampling context";
   }
 
@@ -107,18 +108,24 @@ char* convert(uint8_t* input, int input_size, ConverterHandle* handle, uint8_t**
   if (dst_nb_samples < 0)
     return handle_conversion_error("Error while converting", src_data, dst_data);
 
+  if (dst_nb_samples == 0) {
+    *output_size = 0;
+  } else {
+    *output_size = av_samples_get_buffer_size(
+      &dst_linesize,
+      handle->dst_nb_channels,
+      dst_nb_samples,
+      handle->dst_sample_fmt,
+      1
+    );
+    if(*output_size < 0)
+      return handle_conversion_error("Error calculating output size", src_data, dst_data);
+  }
+
   *output = dst_data[0];
   av_freep(&dst_data);
   av_freep(&src_data[0]);
   av_freep(&src_data);
-
-  *output_size = av_samples_get_buffer_size(
-    &dst_linesize,
-    handle->dst_nb_channels,
-    dst_nb_samples,
-    handle->dst_sample_fmt,
-    1
-  );
 
   return NULL;
 }
@@ -127,10 +134,8 @@ char* convert(uint8_t* input, int input_size, ConverterHandle* handle, uint8_t**
 void res_converter_handle_destructor(ErlNifEnv* env, void* value) {
   UNUSED(env);
   ConverterHandle *handle = (ConverterHandle*) value;
-  if(handle) {
+  if(handle)
     swr_free(&(handle->swr_ctx));
-    free(handle);
-  }
 }
 
 int load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
@@ -165,17 +170,22 @@ static ERL_NIF_TERM export_convert(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
   MEMBRANE_UTIL_PARSE_RESOURCE_ARG(0, handle, ConverterHandle, RES_CONVERTER_HANDLE_TYPE);
   MEMBRANE_UTIL_PARSE_BINARY_ARG(1, input);
 
-  uint8_t* output;
-  int output_size;
-  char* conversion_error = convert((uint8_t*) input.data, input.size, handle, &output, &output_size);
-  if(conversion_error)
-    return membrane_util_make_error_internal(env, conversion_error);
 
   ERL_NIF_TERM output_binary_term;
-  unsigned char* data_ptr;
-  data_ptr = enif_make_new_binary(env, output_size, &output_binary_term);
-  memcpy(data_ptr, output, output_size);
-  free(output);
+  if(input.size > 0) {
+    uint8_t* output;
+    int output_size;
+    char* conversion_error = convert((uint8_t*) input.data, input.size, handle, &output, &output_size);
+    if(conversion_error)
+      return membrane_util_make_error_internal(env, conversion_error);
+
+    unsigned char* data_ptr;
+    data_ptr = enif_make_new_binary(env, output_size, &output_binary_term);
+    memcpy(data_ptr, output, output_size);
+    free(output);
+  } else {
+    enif_make_new_binary(env, 0, &output_binary_term);
+  }
 
   return membrane_util_make_ok_tuple(env, output_binary_term);
 }
