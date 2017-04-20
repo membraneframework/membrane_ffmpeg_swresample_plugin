@@ -1,0 +1,8 @@
+/_build
+/deps
+/test*
+/priv
+*.so
+*.dll
+*.DS_Store
+*.dump
