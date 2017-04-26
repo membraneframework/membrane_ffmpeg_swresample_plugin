@@ -1,14 +1,14 @@
 defmodule Membrane.Element.FFmpeg.SWResample.SerializedFormat do
   use Bitwise
 
-  defp unsigned_type, do: 0b00 <<< 30
-  defp signed_type, do: 0b01 <<< 30
-  defp float_type, do: 0b11 <<< 30
+  @unsigned_sample_type 0b00 <<< 30
+  @signed_sample_type 0b01 <<< 30
+  @float_sample_type 0b11 <<< 30
 
-  defp le_endianity, do: 0b0 <<< 29
-  defp be_endianity, do: 0b1 <<< 29
+  @le_sample_endianity 0b0 <<< 29
+  @be_sample_endianity 0b1 <<< 29
 
-  defp size, do: (0b1 <<< 8) - 1
+  @sample_size (0b1 <<< 8) - 1
 
   @doc """
   converts audio format to 32-bit integer consisting of (from oldest bit):
@@ -26,14 +26,14 @@ defmodule Membrane.Element.FFmpeg.SWResample.SerializedFormat do
       |> case do
           [type, size, endianity] -> [
             case type do
-              "u" -> unsigned_type
-              "s" -> signed_type
-              "f" -> float_type
+              "u" -> @unsigned_sample_type
+              "s" -> @signed_sample_type
+              "f" -> @float_sample_type
             end,
             String.to_integer(size),
             case endianity do
-              "be" -> be_endianity
-              _ -> le_endianity
+              "be" -> @be_sample_endianity
+              _ -> @le_sample_endianity
             end
           ]
         end
@@ -45,7 +45,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.SerializedFormat do
   returns sample size in bytes as integer
   """
   def sample_size(serialized_format) do
-    (serialized_format &&& size) / 8 |> Float.ceil |> trunc
+    (serialized_format &&& @sample_size) / 8 |> Float.ceil |> trunc
   end
 
 end

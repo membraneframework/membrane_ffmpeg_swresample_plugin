@@ -36,7 +36,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
 
   def handle_caps(
     :sink,
-    %Caps{format: sink_format, sample_rate: sink_rate, channels: sink_channels} = sink_caps,
+    %Caps{format: sink_format, sample_rate: sink_rate, channels: sink_channels},
     %{source_caps: %Caps{format: src_format, sample_rate: src_rate, channels: src_channels} = src_caps} = state
   ) do
     case ConverterNative.create(
