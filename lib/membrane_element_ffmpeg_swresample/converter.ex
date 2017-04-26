@@ -15,10 +15,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       %Caps{format: :f64le},
       %Caps{format: :f32le},
       %Caps{format: :s32le},
-      %Caps{format: :u32le},
       %Caps{format: :s16le},
-      %Caps{format: :u16le},
-      %Caps{format: :s8},
       %Caps{format: :u8},
     ]}
   }
@@ -28,10 +25,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       %Caps{format: :f64le},
       %Caps{format: :f32le},
       %Caps{format: :s32le},
-      %Caps{format: :u32le},
       %Caps{format: :s16le},
-      %Caps{format: :u16le},
-      %Caps{format: :s8},
       %Caps{format: :u8},
     ]}
   }

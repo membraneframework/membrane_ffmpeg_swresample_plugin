@@ -7,7 +7,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterSpec do
 
   let :sink_caps, do: %Caps{format: :s16le, sample_rate: 48000, channels: 2}
   let :src_caps, do: %Caps{format: :u8, sample_rate: 24000, channels: 2}
-  let :state, do: %{native: native(), source_caps: src_caps}
+  let :state, do: %{native: native(), source_caps: src_caps()}
 
   describe ".handle_caps/3" do
     let :native, do: Nil
@@ -24,8 +24,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterSpec do
     let :buffer, do: %Buffer{payload: payload()}
     let! :native do
       {:ok, native} = ConverterNative.create(
-        sink_caps().format, sink_caps().sample_rate, sink_caps().channels,
-        src_caps().format, src_caps().sample_rate, src_caps().channels
+        sink_caps().format |> SerializedFormat.from_atom, sink_caps().sample_rate, sink_caps().channels,
+        src_caps().format |> SerializedFormat.from_atom, src_caps().sample_rate, src_caps().channels
       )
       native
     end

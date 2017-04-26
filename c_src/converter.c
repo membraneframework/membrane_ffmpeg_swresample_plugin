@@ -11,10 +11,14 @@
 
 ErlNifResourceType *RES_CONVERTER_HANDLE_TYPE;
 
-char* init(ConverterHandle* handle) {
-  int64_t src_ch_layout = AV_CH_LAYOUT_STEREO, dst_ch_layout = AV_CH_LAYOUT_STEREO;
-  int src_rate = 48000, dst_rate = 24000;
-  enum AVSampleFormat src_sample_fmt = AV_SAMPLE_FMT_S16, dst_sample_fmt = AV_SAMPLE_FMT_U8;
+char* init(
+  ConverterHandle* handle,
+  enum AVSampleFormat src_sample_fmt, int src_rate, int64_t src_ch_layout,
+  enum AVSampleFormat dst_sample_fmt, int dst_rate, int64_t dst_ch_layout
+) {
+  // int64_t src_ch_layout = AV_CH_LAYOUT_STEREO, dst_ch_layout = AV_CH_LAYOUT_STEREO;
+  // int src_rate = 48000, dst_rate = 24000;
+  // enum AVSampleFormat src_sample_fmt = AV_SAMPLE_FMT_S16, dst_sample_fmt = AV_SAMPLE_FMT_U8;
 
   struct SwrContext* swr_ctx = swr_alloc();
   if (!swr_ctx)
@@ -145,13 +149,59 @@ int load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
   return 0;
 }
 
+static char* membrane_sample_fmt_to_av_sample_fmt(int in, enum AVSampleFormat* out) {
+  char* err = NULL;
+  switch (in) {
+    case MEMBRANE_SAMPLE_FORMAT_TYPE_U | 8:   *out = AV_SAMPLE_FMT_U8; break;
+    case MEMBRANE_SAMPLE_FORMAT_TYPE_S | 16:  *out = AV_SAMPLE_FMT_S16; break;
+    case MEMBRANE_SAMPLE_FORMAT_TYPE_S | 32:  *out = AV_SAMPLE_FMT_S32; break;
+    case MEMBRANE_SAMPLE_FORMAT_TYPE_F | 32:  *out = AV_SAMPLE_FMT_FLT; break;
+    case MEMBRANE_SAMPLE_FORMAT_TYPE_F | 64:  *out = AV_SAMPLE_FMT_DBL; break;
+    default:
+      asprintf(&err, "Unsupported sample format: %d", in);
+  }
+  return err;
+}
+
+static char* nb_channels_to_av_layout(int channels, int64_t* av_layout) {
+  char* err = NULL;
+  switch (channels) {
+    case 1: *av_layout = AV_CH_LAYOUT_MONO; break;
+    case 2: *av_layout = AV_CH_LAYOUT_STEREO; break;
+    default:
+      asprintf(&err, "Unsupported number of channels: %d", channels);
+  }
+  return err;
+}
 
 static ERL_NIF_TERM export_create(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   UNUSED(argc);
-  UNUSED(argv);
+  MEMBRANE_UTIL_PARSE_INT_ARG(0, src_format);
+  MEMBRANE_UTIL_PARSE_INT_ARG(1, src_rate);
+  MEMBRANE_UTIL_PARSE_INT_ARG(2, src_channels);
+  MEMBRANE_UTIL_PARSE_INT_ARG(3, dst_format);
+  MEMBRANE_UTIL_PARSE_INT_ARG(4, dst_rate);
+  MEMBRANE_UTIL_PARSE_INT_ARG(5, dst_channels);
+
+  enum AVSampleFormat src_av_format, dst_av_format;
+  char* parse_err;
+  parse_err = membrane_sample_fmt_to_av_sample_fmt(src_format, &src_av_format);
+  if(parse_err) return membrane_util_make_error_internal(env, parse_err);
+  parse_err = membrane_sample_fmt_to_av_sample_fmt(dst_format, &dst_av_format);
+  if(parse_err) return membrane_util_make_error_internal(env, parse_err);
+  int64_t src_layout, dst_layout;
+  parse_err = nb_channels_to_av_layout(src_channels, &src_layout);
+  if(parse_err) return membrane_util_make_error_internal(env, parse_err);
+  parse_err = nb_channels_to_av_layout(dst_channels, &dst_layout);
+  if(parse_err) return membrane_util_make_error_internal(env, parse_err);
+
   ConverterHandle *handle = enif_alloc_resource(RES_CONVERTER_HANDLE_TYPE, sizeof(ConverterHandle));
 
-  char* init_error = init(handle);
+  char* init_error = init(
+    handle,
+    src_av_format, src_rate, src_layout,
+    dst_av_format, dst_rate, dst_layout
+  );
   if(init_error)
     return membrane_util_make_error_internal(env, init_error);
 
