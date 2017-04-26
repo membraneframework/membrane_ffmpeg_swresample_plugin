@@ -191,7 +191,7 @@ static ERL_NIF_TERM export_convert(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
 
 static ErlNifFunc nif_funcs[] =
 {
-  {"create", 0, export_create, 0},
+  {"create", 6, export_create, 0},
   {"convert", 2, export_convert, 0}
 };
 

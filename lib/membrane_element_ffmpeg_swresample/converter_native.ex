@@ -9,9 +9,9 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterNative do
   end
 
 
-  @spec create() ::
+  @spec create(integer, integer, integer, integer, integer, integer) ::
   {:ok, any}
-  def create(), do: raise "NIF fail"
+  def create(_sink_format, _sink_rate, _sink_channels, _src_format, _src_rate, _src_channels), do: raise "NIF fail"
 
 
   @spec convert(any, binary) ::

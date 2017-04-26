@@ -1,7 +1,14 @@
+defmodule Membrane.Element.FFmpeg.SWResample.ConverterOptions do
+  defstruct \
+    source_caps: %Membrane.Caps.Audio.Raw{}
+end
+
 defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   use Membrane.Element.Base.Filter
   alias Membrane.Caps.Audio.Raw, as: Caps
   alias Membrane.Element.FFmpeg.SWResample.ConverterNative
+  alias Membrane.Element.FFmpeg.SWResample.ConverterOptions
+  alias Membrane.Element.FFmpeg.SWResample.SerializedFormat
 
   def_known_source_pads %{
     :sink => {:always, [
@@ -28,15 +35,21 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       %Caps{format: :u8},
     ]}
   }
-  #TODO: add passing target caps as argument
-  def handle_init _ do
-    {:ok, %{native: nil}}
+
+  def handle_init %ConverterOptions{source_caps: source_caps} do
+    {:ok, %{source_caps: source_caps, native: nil}}
   end
 
-  def handle_caps :sink, caps, state do
-    #TODO: pass new caps to native
-    case ConverterNative.create do
-      {:ok, native} -> {:ok, [{:caps, {:source, caps}}], %{state | native: native}}
+  def handle_caps(
+    :sink,
+    %Caps{format: sink_format, sample_rate: sink_rate, channels: sink_channels} = sink_caps,
+    %{source_caps: %Caps{format: src_format, sample_rate: src_rate, channels: src_channels} = src_caps} = state
+  ) do
+    case ConverterNative.create(
+      sink_format |> SerializedFormat.from_atom, sink_rate, sink_channels,
+      src_format |> SerializedFormat.from_atom, src_rate, src_channels
+    ) do
+      {:ok, native} -> {:ok, [{:caps, {:source, src_caps}}], %{state | native: native}}
       {:error, reason} -> {:error, reason, state}
     end
   end
