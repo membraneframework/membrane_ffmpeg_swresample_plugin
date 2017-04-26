@@ -1,33 +1,42 @@
 defmodule Membrane.Element.FFmpeg.SWResample.ConverterOptions do
+  @moduledoc """
+  Options passed to converter. If sink_caps field equals Nil, those caps are
+  assumed to be received through :sink.
+  """
   defstruct \
     sink_caps: Nil,
     source_caps: %Membrane.Caps.Audio.Raw{}
 end
 
 defmodule Membrane.Element.FFmpeg.SWResample.Converter do
+  @moduledoc """
+  This element performs audio conversion/resampling/channel mixing, using SWResample
+  module of FFmpeg library.
+  """
   use Membrane.Element.Base.Filter
   alias Membrane.Caps.Audio.Raw, as: Caps
   alias Membrane.Element.FFmpeg.SWResample.ConverterNative
   alias Membrane.Element.FFmpeg.SWResample.ConverterOptions
 
+  @supported_caps [
+    %Caps{format: :f64le, channels: 1},
+    %Caps{format: :f32le, channels: 1},
+    %Caps{format: :s32le, channels: 1},
+    %Caps{format: :s16le, channels: 1},
+    %Caps{format: :u8,    channels: 1},
+    %Caps{format: :f64le, channels: 2},
+    %Caps{format: :f32le, channels: 2},
+    %Caps{format: :s32le, channels: 2},
+    %Caps{format: :s16le, channels: 2},
+    %Caps{format: :u8,    channels: 2},
+  ]
+
   def_known_source_pads %{
-    :source => {:always, [
-      %Caps{format: :f64le},
-      %Caps{format: :f32le},
-      %Caps{format: :s32le},
-      %Caps{format: :s16le},
-      %Caps{format: :u8},
-    ]}
+    :source => {:always, @supported_caps}
   }
 
   def_known_sink_pads %{
-    :sink => {:always, [
-      %Caps{format: :f64le},
-      %Caps{format: :f32le},
-      %Caps{format: :s32le},
-      %Caps{format: :s16le},
-      %Caps{format: :u8},
-    ]}
+    :sink => {:always, @supported_caps}
   }
 
   def handle_init %ConverterOptions{sink_caps: sink_caps, source_caps: source_caps} do
