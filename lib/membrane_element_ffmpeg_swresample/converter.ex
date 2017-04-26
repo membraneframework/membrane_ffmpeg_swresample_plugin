@@ -10,7 +10,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   alias Membrane.Element.FFmpeg.SWResample.ConverterOptions
 
   def_known_source_pads %{
-    :sink => {:always, [
+    :source => {:always, [
       %Caps{format: :f64le},
       %Caps{format: :f32le},
       %Caps{format: :s32le},
@@ -20,7 +20,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   }
 
   def_known_sink_pads %{
-    :source => {:always, [
+    :sink => {:always, [
       %Caps{format: :f64le},
       %Caps{format: :f32le},
       %Caps{format: :s32le},
