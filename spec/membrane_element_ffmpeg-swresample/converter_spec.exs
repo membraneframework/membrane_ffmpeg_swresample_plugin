@@ -24,8 +24,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterSpec do
     let :buffer, do: %Buffer{payload: payload()}
     let! :native do
       {:ok, native} = ConverterNative.create(
-        sink_caps().format |> SerializedFormat.from_atom, sink_caps().sample_rate, sink_caps().channels,
-        src_caps().format |> SerializedFormat.from_atom, src_caps().sample_rate, src_caps().channels
+        sink_caps().format |> Caps.SerializedFormat.from_atom, sink_caps().sample_rate, sink_caps().channels,
+        src_caps().format |> Caps.SerializedFormat.from_atom, src_caps().sample_rate, src_caps().channels
       )
       native
     end

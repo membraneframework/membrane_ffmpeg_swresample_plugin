@@ -8,7 +8,6 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   alias Membrane.Caps.Audio.Raw, as: Caps
   alias Membrane.Element.FFmpeg.SWResample.ConverterNative
   alias Membrane.Element.FFmpeg.SWResample.ConverterOptions
-  alias Membrane.Element.FFmpeg.SWResample.SerializedFormat
 
   def_known_source_pads %{
     :sink => {:always, [
@@ -40,8 +39,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     %{source_caps: %Caps{format: src_format, sample_rate: src_rate, channels: src_channels} = src_caps} = state
   ) do
     case ConverterNative.create(
-      sink_format |> SerializedFormat.from_atom, sink_rate, sink_channels,
-      src_format |> SerializedFormat.from_atom, src_rate, src_channels
+      sink_format |> Caps.SerializedFormat.from_atom, sink_rate, sink_channels,
+      src_format |> Caps.SerializedFormat.from_atom, src_rate, src_channels
     ) do
       {:ok, native} -> {:ok, [{:caps, {:source, src_caps}}], %{state | native: native}}
       {:error, reason} -> {:error, reason, state}
