@@ -1,7 +1,6 @@
 defmodule Membrane.Element.FFmpeg.SWResample.ConverterSpec do
   use ESpec, asyn: true
   alias Membrane.Element.FFmpeg.SWResample.ConverterNative
-  alias Membrane.Element.FFmpeg.SWResample.SerializedFormat
   alias Membrane.Buffer
   alias Membrane.Caps.Audio.Raw, as: Caps
 
