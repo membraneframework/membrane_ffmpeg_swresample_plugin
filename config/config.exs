@@ -10,6 +10,7 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
         ],
         sources: [
           "converter.c",
+          "converter_lib.c",
         ],
         libs: [
           "avutil",
