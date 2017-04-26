@@ -30,10 +30,8 @@ char* init(ConverterHandle* handle) {
   av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", dst_sample_fmt, 0);
   av_opt_set_int(swr_ctx, "dither_method", SWR_DITHER_RECTANGULAR, 0);
 
-  if(swr_init(swr_ctx) < 0) {
-    //swr_free(&swr_ctx);
+  if(swr_init(swr_ctx) < 0)
     return "Failed to initialize the resampling context";
-  }
 
   *handle = (ConverterHandle) {
     .swr_ctx = swr_ctx,
