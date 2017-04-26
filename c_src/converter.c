@@ -54,12 +54,12 @@ static char* nb_channels_to_av_layout(int channels, int64_t* av_layout) {
 
 static ERL_NIF_TERM export_create(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   UNUSED(argc);
-  MEMBRANE_UTIL_PARSE_INT_ARG(0, src_format);
-  MEMBRANE_UTIL_PARSE_INT_ARG(1, src_rate);
-  MEMBRANE_UTIL_PARSE_INT_ARG(2, src_channels);
-  MEMBRANE_UTIL_PARSE_INT_ARG(3, dst_format);
-  MEMBRANE_UTIL_PARSE_INT_ARG(4, dst_rate);
-  MEMBRANE_UTIL_PARSE_INT_ARG(5, dst_channels);
+  MEMBRANE_UTIL_PARSE_UINT_ARG(0, src_format);
+  MEMBRANE_UTIL_PARSE_UINT_ARG(1, src_rate);
+  MEMBRANE_UTIL_PARSE_UINT_ARG(2, src_channels);
+  MEMBRANE_UTIL_PARSE_UINT_ARG(3, dst_format);
+  MEMBRANE_UTIL_PARSE_UINT_ARG(4, dst_rate);
+  MEMBRANE_UTIL_PARSE_UINT_ARG(5, dst_channels);
 
   enum AVSampleFormat src_av_format, dst_av_format;
   char* parse_err;
