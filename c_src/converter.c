@@ -5,7 +5,7 @@
  */
 #include "converter.h"
 
-//#define MEMBRANE_LOG_TAG "Membrane.Element.FFmpeg.SWResample.ConverterNative"
+#define MEMBRANE_LOG_TAG "Membrane.Element.FFmpeg.SWResample.ConverterNative"
 
 #define UNUSED(x) (void)(x)
 
