@@ -38,12 +38,16 @@ char* init(
 }
 
 static char* handle_conversion_error(char* error, uint8_t** src_data, uint8_t** dst_data) {
-  if (src_data)
-    av_freep(&src_data[0]);
-  av_freep(&src_data);
-  if (dst_data)
-    av_freep(&dst_data[0]);
-  av_freep(&dst_data);
+  if (src_data) {
+    if(src_data[0])
+      av_freep(&src_data[0]);
+    av_freep(&src_data);
+  }
+  if (dst_data) {
+    if(dst_data[0])
+      av_freep(&dst_data[0]);
+    av_freep(&dst_data);
+  }
   return error;
 }
 
