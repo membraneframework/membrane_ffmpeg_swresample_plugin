@@ -6,3 +6,5 @@
 *.dll
 *.DS_Store
 *.dump
+*.o
+/bundlex.sh
