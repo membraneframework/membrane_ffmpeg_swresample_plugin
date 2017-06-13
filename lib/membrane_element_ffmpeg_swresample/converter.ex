@@ -68,7 +68,15 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
 
   def handle_buffer :sink, caps, %Membrane.Buffer{} = buffer, %{sink_caps: sink_caps, source_caps: source_caps, native: nil} = state do
     {:ok, _com, state} = handle_all_caps_supplied(sink_caps, source_caps, state)
-    handle_buffer(:sink, caps, buffer, state)
+    caps_com = [{:caps, {:source, source_caps}}]
+    case handle_buffer(:sink, caps, buffer, state) do
+      {:ok, coms, state} ->
+        {:ok, caps_com ++ coms, state}
+      {:ok, state} ->
+        {:ok, caps_com, state}
+      err_res ->
+        err_res
+    end
   end
   def handle_buffer :sink, _caps, %Membrane.Buffer{payload: payload} = buffer, %{native: native} = state do
     case ConverterNative.convert native, payload do
