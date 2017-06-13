@@ -36,7 +36,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   }
 
   def_known_sink_pads %{
-    :sink => {:always, @supported_caps}
+    :sink => {:always, @supported_caps},
+    :source_caps => {:always, @supported_caps},
   }
 
   def handle_init %ConverterOptions{sink_caps: sink_caps, source_caps: source_caps} do
@@ -44,10 +45,11 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   defp handle_all_caps_supplied(
-    %Caps{format: sink_format, sample_rate: sink_rate, channels: sink_channels} = _sink_caps,
+    %Caps{format: sink_format, sample_rate: sink_rate, channels: sink_channels} = sink_caps,
     %Caps{format: src_format, sample_rate: src_rate, channels: src_channels} = src_caps,
     state
   )do
+
     case ConverterNative.create(
       sink_format |> Caps.SerializedFormat.from_atom, sink_rate, sink_channels,
       src_format |> Caps.SerializedFormat.from_atom, src_rate, src_channels
@@ -57,19 +59,16 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     end
   end
 
-  def handle_prepare :stopped, %{sink_caps: %Caps{} = sink_caps, source_caps: source_caps} = state do
-    handle_all_caps_supplied sink_caps, source_caps, state
+  def handle_caps :sink, sink_caps, state do
+    {:ok, %{state | sink_caps: sink_caps}}
   end
-  def handle_prepare _, state do
-    {:ok, state}
-  end
-
-  def handle_caps :sink, sink_caps, %{source_caps: source_caps} = state do
-    handle_all_caps_supplied sink_caps, source_caps, state
+  def handle_caps :source_caps, source_caps, state do
+    {:ok, %{state | source_caps: source_caps}}
   end
 
-  def handle_buffer :sink, _caps, %Membrane.Buffer{}, %{native: nil} do
-    {:error, "FFmpeg swresample: native uninitialized, initialzation has failed or received no/invalid caps"}
+  def handle_buffer :sink, caps, %Membrane.Buffer{} = buffer, %{sink_caps: sink_caps, source_caps: source_caps, native: nil} = state do
+    {:ok, _com, state} = handle_all_caps_supplied(sink_caps, source_caps, state)
+    handle_buffer(:sink, caps, buffer, state)
   end
   def handle_buffer :sink, _caps, %Membrane.Buffer{payload: payload} = buffer, %{native: native} = state do
     case ConverterNative.convert native, payload do
