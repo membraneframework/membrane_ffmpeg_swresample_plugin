@@ -27,8 +27,8 @@ int load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
   return 0;
 }
 
-static char* membrane_sample_fmt_to_av_sample_fmt(int in, enum AVSampleFormat* out) {
-  char* err = NULL;
+static int membrane_sample_fmt_to_av_sample_fmt(int in, enum AVSampleFormat* out) {
+  int ret_val = 0;
   switch (in) {
     case MEMBRANE_SAMPLE_FORMAT_TYPE_U | 8:   *out = AV_SAMPLE_FMT_U8; break;
     case MEMBRANE_SAMPLE_FORMAT_TYPE_S | 16:  *out = AV_SAMPLE_FMT_S16; break;
@@ -36,20 +36,20 @@ static char* membrane_sample_fmt_to_av_sample_fmt(int in, enum AVSampleFormat* o
     case MEMBRANE_SAMPLE_FORMAT_TYPE_F | 32:  *out = AV_SAMPLE_FMT_FLT; break;
     case MEMBRANE_SAMPLE_FORMAT_TYPE_F | 64:  *out = AV_SAMPLE_FMT_DBL; break;
     default:
-      asprintf(&err, "Unsupported sample format: %d", in);
+      ret_val = -1;
   }
-  return err;
+  return ret_val;
 }
 
-static char* nb_channels_to_av_layout(int channels, int64_t* av_layout) {
-  char* err = NULL;
+static int nb_channels_to_av_layout(int channels, int64_t* av_layout) {
+  int ret_val = 0;
   switch (channels) {
     case 1: *av_layout = AV_CH_LAYOUT_MONO; break;
     case 2: *av_layout = AV_CH_LAYOUT_STEREO; break;
     default:
-      asprintf(&err, "Unsupported number of channels: %d", channels);
+      ret_val = -1;
   }
-  return err;
+  return ret_val;
 }
 
 static ERL_NIF_TERM export_create(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -62,16 +62,16 @@ static ERL_NIF_TERM export_create(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
   MEMBRANE_UTIL_PARSE_UINT_ARG(5, dst_channels);
 
   enum AVSampleFormat src_av_format, dst_av_format;
-  char* parse_err;
-  parse_err = membrane_sample_fmt_to_av_sample_fmt(src_format, &src_av_format);
-  if(parse_err) return membrane_util_make_error_internal(env, parse_err);
-  parse_err = membrane_sample_fmt_to_av_sample_fmt(dst_format, &dst_av_format);
-  if(parse_err) return membrane_util_make_error_internal(env, parse_err);
+  int ret_val;
+  ret_val = membrane_sample_fmt_to_av_sample_fmt(src_format, &src_av_format);
+  if(ret_val) return membrane_util_make_error_args(env, "src_channels", "Unsupported sample format");
+  ret_val = membrane_sample_fmt_to_av_sample_fmt(dst_format, &dst_av_format);
+  if(ret_val) return  membrane_util_make_error_args(env, "dst_channels", "Unsupported sample format");
   int64_t src_layout, dst_layout;
-  parse_err = nb_channels_to_av_layout(src_channels, &src_layout);
-  if(parse_err) return membrane_util_make_error_internal(env, parse_err);
-  parse_err = nb_channels_to_av_layout(dst_channels, &dst_layout);
-  if(parse_err) return membrane_util_make_error_internal(env, parse_err);
+  ret_val = nb_channels_to_av_layout(src_channels, &src_layout);
+  if(ret_val) return membrane_util_make_error_args(env, "src_channels", "Unsupported number of channels");
+  ret_val = nb_channels_to_av_layout(dst_channels, &dst_layout);
+  if(ret_val) return membrane_util_make_error_args(env, "dst_channels", "Unsupported number of channels");
 
   ConverterHandle *handle = enif_alloc_resource(RES_CONVERTER_HANDLE_TYPE, sizeof(ConverterHandle));
 
