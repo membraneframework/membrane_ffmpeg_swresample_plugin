@@ -49,12 +49,13 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
           "./deps/membrane_common_c/c_src",
         ],
         sources: [
+          "./ext/include",
           "converter.c",
           "converter_lib.c",
         ],
         libs: [
-          "avutil.lib",
-          "swresample.lib",
+          "ext/windows/32/avutil.lib",
+          "ext/windows/32/swresample.lib",
         ],
       ]
     ]
@@ -63,6 +64,7 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
     nif: [
       membrane_element_ffmpeg_swresample_converter: [
         includes: [
+          "./ext/include",
           "../membrane_common_c/c_src",
           "./deps/membrane_common_c/c_src",
         ],
@@ -71,8 +73,8 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
           "converter_lib.c",
         ],
         libs: [
-          "priv/avutil.lib",
-          "priv/swresample.lib",
+          "ext/windows/64/avutil.lib",
+          "ext/windows/64/swresample.lib",
         ],
 
       ]
