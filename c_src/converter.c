@@ -108,7 +108,7 @@ static ERL_NIF_TERM export_convert(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
     unsigned char* data_ptr;
     data_ptr = enif_make_new_binary(env, output_size, &output_binary_term);
     memcpy(data_ptr, output, output_size);
-    free(output);
+    av_freep(&output);
   } else {
     enif_make_new_binary(env, 0, &output_binary_term);
   }
