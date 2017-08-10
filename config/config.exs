@@ -45,11 +45,11 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
     nif: [
       membrane_element_ffmpeg_swresample_converter: [
         includes: [
+          "./ext/include",
           "../membrane_common_c/c_src",
           "./deps/membrane_common_c/c_src",
         ],
         sources: [
-          "./ext/include",
           "converter.c",
           "converter_lib.c",
         ],
