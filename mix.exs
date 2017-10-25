@@ -19,7 +19,6 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
 
   def application do
     [applications: [
-      :membrane_core
     ], mod: {Membrane.Element.FFmpeg.SWResample, []}]
   end
 
