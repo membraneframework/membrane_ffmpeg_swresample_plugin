@@ -5,5 +5,6 @@
   "membrane_caps_audio_mpeg": {:git, "git@github.com:membraneframework/membrane-caps-audio-mpeg.git", "4f29dec1b3058cdf1d113484240569b64d4334b2", []},
   "membrane_caps_audio_raw": {:git, "git@github.com:membraneframework/membrane-caps-audio-raw.git", "8fd9c1c7a33a46b544ca857581fdcd20b08f55e2", []},
   "membrane_common_c": {:git, "git@github.com:membraneframework/membrane-common-c.git", "07d89995dcec7bb3fca04ce67c1cad40d2c98f90", []},
-  "membrane_core": {:git, "git@github.com:membraneframework/membrane-core.git", "08ab34708e23ee2d6945c9c27ba49be9e26b87d6", [branch: "v0.1"]},
-  "porcelain": {:hex, :porcelain, "2.0.3", "2d77b17d1f21fed875b8c5ecba72a01533db2013bd2e5e62c6d286c029150fdc", [:mix], []}}
+  "membrane_core": {:git, "git@github.com:membraneframework/membrane-core.git", "89be91b336648ed8fb9d359b8df7030936463623", []},
+  "porcelain": {:hex, :porcelain, "2.0.3", "2d77b17d1f21fed875b8c5ecba72a01533db2013bd2e5e62c6d286c029150fdc", [:mix], []},
+  "qex": {:hex, :qex, "0.3.4", "92fba2ca8fa162d4619d572ec6d9124f47564a5c8dd1e252147c29d3435d2608", [:mix], []}}

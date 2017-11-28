@@ -5,7 +5,7 @@
  */
 #include "converter.h"
 
-#define MEMBRANE_LOG_TAG "Membrane.Element.FFmpeg.SWResample.ConverterNative"
+#define MEMBRANE_LOG_TAG "Membrane.Element.FFmpeg.SWResample.Converter.Native"
 
 #define UNUSED(x) (void)(x)
 
@@ -123,4 +123,4 @@ static ErlNifFunc nif_funcs[] =
   {"convert", 2, export_convert, 0}
 };
 
-ERL_NIF_INIT(Elixir.Membrane.Element.FFmpeg.SWResample.ConverterNative, nif_funcs, load, NULL, NULL, NULL);
+ERL_NIF_INIT(Elixir.Membrane.Element.FFmpeg.SWResample.Converter.Native, nif_funcs, load, NULL, NULL, NULL);

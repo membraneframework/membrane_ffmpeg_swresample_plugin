@@ -1,4 +1,4 @@
-defmodule Membrane.Element.FFmpeg.SWResample.ConverterNative do
+defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   require Bundlex.Loader
 
   @on_load :load_nifs
