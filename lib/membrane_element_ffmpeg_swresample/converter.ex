@@ -7,6 +7,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   alias Membrane.Caps.Audio.Raw, as: Caps
   alias __MODULE__.{Options, Native}
   alias Membrane.Buffer
+  use Membrane.Helper
 
   # @supported_caps [
   #   %Caps{format: :f64le, channels: 1},
@@ -30,7 +31,12 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   }
 
   def handle_init(%Options{sink_caps: sink_caps, source_caps: source_caps}) do
-    {:ok, %{sink_caps: sink_caps, source_caps: source_caps, native: nil}}
+    {:ok, %{
+      sink_caps: sink_caps,
+      source_caps: source_caps,
+      native: nil,
+      queue: <<>>,
+    }}
   end
 
   def handle_prepare(:stopped, %{sink_caps: nil} = state), do:
@@ -57,20 +63,27 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     end
   end
 
-  def handle_demand(:source, _size, _, %{native: nil} = state), do:
+  def handle_demand(:source, _size, :bytes, _, %{native: nil} = state), do:
     {:ok, state}
 
-  def handle_demand(:source, size, _, state), do:
+  def handle_demand(:source, size, :bytes, _, state), do:
     {{:ok, demand: {:sink, size}}, state}
 
-  def handle_process1 :sink, _caps, %Buffer{payload: payload} = buffer, %{native: native} = state do
-    with {:ok, result} when byte_size(result) > 0
-      <- Native.convert(native, payload)
+  def handle_process1(
+    :sink,
+    %Buffer{payload: payload},
+    %{caps: caps},
+    %{native: native, queue: q} = state
+  ) do
+    # payload = buffers |> Enum.map(& &1.payload) |> IO.iodata_to_binary
+    frame_size = (caps.format |> Caps.format_to_sample_size!) * caps.channels
+    with {:ok, {result, q}} when byte_size(result) > 0
+      <- convert(native, frame_size, payload, q)
     do
-      {{:ok, buffer: {:source, %Buffer{buffer | payload: result}}}, state}
+      {{:ok, buffer: {:source, %Buffer{payload: result}}}, %{state | queue: q}}
     else
-      {:ok, <<>>} -> {:ok, state}
-      {:error, reason} -> {{:error, reason}, state}
+      {:ok, {<<>>, q}} -> {:ok, %{state | queue: q}}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -83,5 +96,18 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       src_format |> Caps.SerializedFormat.from_atom, src_rate, src_channels
     )
   end
+
+  defp convert(native, frame_size, payload, queue)
+  when byte_size(queue) + byte_size(payload) > 2*frame_size do
+    {payload, q} = (queue <> payload)
+      |> Helper.Binary.int_rem(frame_size)
+
+    with {:ok, result} <- Native.convert(native, payload)
+    do {:ok, {result, q}}
+    end
+  end
+
+  defp convert(_native, _frame_size, payload, queue), do:
+    {:ok, {<<>>, queue <> payload}}
 
 end
