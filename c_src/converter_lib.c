@@ -3,6 +3,7 @@
 
 char* init(
   ConverterHandle* handle,
+  char from_s24le,
   enum AVSampleFormat src_sample_fmt, int src_rate, int64_t src_ch_layout,
   enum AVSampleFormat dst_sample_fmt, int dst_rate, int64_t dst_ch_layout
 ) {
@@ -32,6 +33,7 @@ char* init(
     .dst_sample_fmt = dst_sample_fmt,
     .src_nb_channels = av_get_channel_layout_nb_channels(src_ch_layout),
     .dst_nb_channels = av_get_channel_layout_nb_channels(dst_ch_layout),
+    .from_s24le = from_s24le,
   };
 
   return NULL;
@@ -51,7 +53,34 @@ static char* handle_conversion_error(char* error, uint8_t** src_data, uint8_t** 
   return error;
 }
 
+static char* convert_s24le_to_s32le(uint8_t** data, int* data_size) {
+  uint8_t* input = *data;
+  int input_size = *data_size;
+  if(input_size%3 != 0)
+    return "Could not convert from s24le to s32le: input size not divisible by 3";
+  int output_size = input_size*4/3;
+  uint8_t* output = malloc(output_size);
+  for(int i = 0; i < input_size/3; i++){
+    uint8_t b0 = input[3*i];
+    uint8_t b1 = input[3*i+1];
+    uint8_t b2 = input[3*i+2];
+    output[i*4] = (b2 << 1) | (b1 >> 7);
+    output[i*4+1] = b0;
+    output[i*4+2] = b1;
+    output[i*4+3] = b2;
+  }
+  *data = output;
+  *data_size = output_size;
+  return NULL;
+}
+
 char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t** output, int* output_size) {
+
+  if(handle->from_s24le) {
+    char* res = convert_s24le_to_s32le(&input, &input_size);
+    if(res) return res;
+  }
+
   uint8_t **src_data = NULL, **dst_data = NULL;
   int src_linesize, dst_linesize;
   int src_nb_samples = input_size / handle->src_nb_channels / av_get_bytes_per_sample(handle->src_sample_fmt);

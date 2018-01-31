@@ -27,11 +27,20 @@ int load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
   return 0;
 }
 
-static int membrane_sample_fmt_to_av_sample_fmt(int in, enum AVSampleFormat* out) {
+static int membrane_sample_fmt_to_av_sample_fmt(int in, char dir, char* s24le, enum AVSampleFormat* out) {
   int ret_val = 0;
+  if(s24le) *s24le = 0;
   switch (in) {
     case MEMBRANE_SAMPLE_FORMAT_TYPE_U | 8:   *out = AV_SAMPLE_FMT_U8; break;
     case MEMBRANE_SAMPLE_FORMAT_TYPE_S | 16:  *out = AV_SAMPLE_FMT_S16; break;
+    case MEMBRANE_SAMPLE_FORMAT_TYPE_S | 24:
+      if(dir == 1)
+        ret_val = -1;
+      else {
+        *out = AV_SAMPLE_FMT_S32;
+        if(s24le) *s24le = 1;
+      }
+      break;
     case MEMBRANE_SAMPLE_FORMAT_TYPE_S | 32:  *out = AV_SAMPLE_FMT_S32; break;
     case MEMBRANE_SAMPLE_FORMAT_TYPE_F | 32:  *out = AV_SAMPLE_FMT_FLT; break;
     case MEMBRANE_SAMPLE_FORMAT_TYPE_F | 64:  *out = AV_SAMPLE_FMT_DBL; break;
@@ -63,9 +72,10 @@ static ERL_NIF_TERM export_create(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
 
   enum AVSampleFormat src_av_format, dst_av_format;
   int ret_val;
-  ret_val = membrane_sample_fmt_to_av_sample_fmt(src_format, &src_av_format);
+  char from_s24le;
+  ret_val = membrane_sample_fmt_to_av_sample_fmt(src_format, 0, &from_s24le, &src_av_format);
   if(ret_val) return membrane_util_make_error_args(env, "src_channels", "Unsupported sample format");
-  ret_val = membrane_sample_fmt_to_av_sample_fmt(dst_format, &dst_av_format);
+  ret_val = membrane_sample_fmt_to_av_sample_fmt(dst_format, 1, NULL, &dst_av_format);
   if(ret_val) return  membrane_util_make_error_args(env, "dst_channels", "Unsupported sample format");
   int64_t src_layout, dst_layout;
   ret_val = nb_channels_to_av_layout(src_channels, &src_layout);
@@ -74,9 +84,9 @@ static ERL_NIF_TERM export_create(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
   if(ret_val) return membrane_util_make_error_args(env, "dst_channels", "Unsupported number of channels");
 
   ConverterHandle *handle = enif_alloc_resource(RES_CONVERTER_HANDLE_TYPE, sizeof(ConverterHandle));
-
   char* init_error = init(
     handle,
+    from_s24le,
     src_av_format, src_rate, src_layout,
     dst_av_format, dst_rate, dst_layout
   );
@@ -108,7 +118,8 @@ static ERL_NIF_TERM export_convert(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
     unsigned char* data_ptr;
     data_ptr = enif_make_new_binary(env, output_size, &output_binary_term);
     memcpy(data_ptr, output, output_size);
-    av_freep(&output);
+    // av_freep(&output);
+    free(output);
   } else {
     enif_make_new_binary(env, 0, &output_binary_term);
   }
