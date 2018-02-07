@@ -1,6 +1,5 @@
 #include "converter_lib.h"
 
-
 char* init(
   ConverterHandle* handle,
   char from_s24le,
@@ -39,14 +38,16 @@ char* init(
   return NULL;
 }
 
-static char* handle_conversion_error(char* error, uint8_t** src_data, uint8_t** dst_data) {
+static char* free_conversion_data(char* error, ConverterHandle* handle, uint8_t* input, uint8_t** src_data, uint8_t** dst_data) {
+  if(handle->from_s24le && input)
+    free(input);
   if (src_data) {
     if(src_data[0])
       av_freep(&src_data[0]);
     av_freep(&src_data);
   }
   if (dst_data) {
-    if(dst_data[0])
+    if(error && dst_data[0])
       av_freep(&dst_data[0]);
     av_freep(&dst_data);
   }
@@ -94,7 +95,7 @@ char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t**
       handle->src_sample_fmt,
       0
     ))
-      return handle_conversion_error("Could not allocate source samples", src_data, dst_data);
+      return free_conversion_data("Could not allocate source samples", handle, input, src_data, dst_data);
 
   memcpy(src_data[0], input, av_samples_get_buffer_size(
     &src_linesize,
@@ -118,7 +119,7 @@ char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t**
     max_dst_nb_samples,
     handle->dst_sample_fmt,
     0))
-      return handle_conversion_error("Could not allocate destination samples", src_data, dst_data);
+      return free_conversion_data("Could not allocate destination samples", handle, input, src_data, dst_data);
 
   int dst_nb_samples = swr_convert(
     handle->swr_ctx,
@@ -128,7 +129,7 @@ char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t**
     src_nb_samples
   );
   if (dst_nb_samples < 0)
-    return handle_conversion_error("Error while converting", src_data, dst_data);
+    return free_conversion_data("Error while converting", handle, input, src_data, dst_data);
 
   if (dst_nb_samples == 0) {
     *output_size = 0;
@@ -141,13 +142,11 @@ char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t**
       1
     );
     if(*output_size < 0)
-      return handle_conversion_error("Error calculating output size", src_data, dst_data);
+      return free_conversion_data("Error calculating output size", handle, input, src_data, dst_data);
   }
 
   *output = dst_data[0];
-  av_freep(&dst_data);
-  av_freep(&src_data[0]);
-  av_freep(&src_data);
+  free_conversion_data(NULL, handle, input, src_data, dst_data);
 
   return NULL;
 }
