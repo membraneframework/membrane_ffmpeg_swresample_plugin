@@ -76,7 +76,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     %{native: native, queue: q} = state
   ) do
     # payload = buffers |> Enum.map(& &1.payload) |> IO.iodata_to_binary
-    frame_size = (caps.format |> Caps.format_to_sample_size!) * caps.channels
+    frame_size = (caps |> Caps.sample_size) * caps.channels
     with {:ok, {result, q}} when byte_size(result) > 0
       <- convert(native, frame_size, payload, q)
     do
@@ -92,8 +92,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     %Caps{format: src_format, sample_rate: src_rate, channels: src_channels}
   )do
     Native.create(
-      sink_format |> Caps.SerializedFormat.from_atom, sink_rate, sink_channels,
-      src_format |> Caps.SerializedFormat.from_atom, src_rate, src_channels
+      sink_format |> Caps.Format.serialize, sink_rate, sink_channels,
+      src_format |> Caps.Format.serialize, src_rate, src_channels
     )
   end
 
