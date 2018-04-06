@@ -5,7 +5,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
     [app: :membrane_element_ffmpeg_swresample,
      compilers: ~w(bundlex.lib) ++ Mix.compilers,
      version: "0.0.1",
-     elixir: "~> 1.3",
+     elixir: "~> 1.6",
      elixirc_paths: elixirc_paths(Mix.env),
      description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
      maintainers: ["Marcin Lewandowski", "Mateusz Front"],
@@ -18,8 +18,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
 
 
   def application do
-    [applications: [
-    ], mod: {Membrane.Element.FFmpeg.SWResample, []}]
+    [
+      extra_applications: [],
+      mod: {Membrane.Element.FFmpeg.SWResample, []}
+    ]
   end
 
 
@@ -33,7 +35,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
       {:membrane_caps_audio_raw, git: "git@github.com:membraneframework/membrane-caps-audio-raw.git"},
       {:membrane_common_c, git: "git@github.com:membraneframework/membrane-common-c.git"},
       {:bundlex, git: "git@github.com:radiokit/bundlex.git"},
-      {:espec, "~> 1.1.2", only: :test},
+      {:espec, "~> 1.5", only: :test},
     ]
   end
 end
