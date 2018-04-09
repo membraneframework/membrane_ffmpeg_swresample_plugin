@@ -5,7 +5,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
 
   @doc false
   def load_nifs do
-    Bundlex.Loader.load_lib_nif!(:membrane_element_ffmpeg_swresample, :membrane_element_ffmpeg_swresample_converter)
+    Bundlex.Loader.load_lib_nif!(
+      :membrane_element_ffmpeg_swresample,
+      :membrane_element_ffmpeg_swresample_converter
+    )
   end
 
   @opaque handle_t :: reference()
@@ -20,8 +23,9 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   Returns {:ok, native_handle} or {:error, reason}.
   """
   @spec create(integer, integer, integer, integer, integer, integer) ::
-  {:ok, handle_t} | {:error, any}
-  def create(_sink_format, _sink_rate, _sink_channels, _src_format, _src_rate, _src_channels), do: raise "NIF fail"
+          {:ok, handle_t} | {:error, any}
+  def create(_sink_format, _sink_rate, _sink_channels, _src_format, _src_rate, _src_channels),
+    do: raise("NIF fail")
 
   @doc """
   Function that converts data according to a native handle.
@@ -33,8 +37,6 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   Note: Not all samples are guaranteed to be converted. Some of them may be stored
   in handle to be converted when long enough chunk is collected.
   """
-  @spec convert(handle_t, binary) ::
-  {:ok, binary} | {:error, any}
-  def convert(_native, _data), do: raise "NIF fail"
-
+  @spec convert(handle_t, binary) :: {:ok, binary} | {:error, any}
+  def convert(_native, _data), do: raise("NIF fail")
 end

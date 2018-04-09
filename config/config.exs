@@ -6,18 +6,17 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
       membrane_element_ffmpeg_swresample_converter: [
         includes: [
           "../membrane_common_c/c_src",
-          "./deps/membrane_common_c/c_src",
+          "./deps/membrane_common_c/c_src"
         ],
         sources: [
           "converter.c",
-          "converter_lib.c",
+          "converter_lib.c"
         ],
         libs: [
           "avutil",
-          "swresample",
+          "swresample"
         ],
-        pkg_configs: [
-        ]
+        pkg_configs: []
       ]
     ]
   ],
@@ -26,18 +25,17 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
       membrane_element_ffmpeg_swresample_converter: [
         includes: [
           "../membrane_common_c/c_src",
-          "./deps/membrane_common_c/c_src",
+          "./deps/membrane_common_c/c_src"
         ],
         sources: [
           "converter.c",
-          "converter_lib.c",
+          "converter_lib.c"
         ],
         libs: [
           "avutil",
-          "swresample",
+          "swresample"
         ],
-        pkg_configs: [
-        ]
+        pkg_configs: []
       ]
     ]
   ],
@@ -47,16 +45,16 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
         includes: [
           "./ext/include",
           "../membrane_common_c/c_src",
-          "./deps/membrane_common_c/c_src",
+          "./deps/membrane_common_c/c_src"
         ],
         sources: [
           "converter.c",
-          "converter_lib.c",
+          "converter_lib.c"
         ],
         libs: [
           "ext/windows/32/avutil.lib",
-          "ext/windows/32/swresample.lib",
-        ],
+          "ext/windows/32/swresample.lib"
+        ]
       ]
     ]
   ],
@@ -66,17 +64,16 @@ config :membrane_element_ffmpeg_swresample, :bundlex_lib,
         includes: [
           "./ext/include",
           "../membrane_common_c/c_src",
-          "./deps/membrane_common_c/c_src",
+          "./deps/membrane_common_c/c_src"
         ],
         sources: [
           "converter.c",
-          "converter_lib.c",
+          "converter_lib.c"
         ],
         libs: [
           "ext/windows/64/avutil.lib",
-          "ext/windows/64/swresample.lib",
-        ],
-
+          "ext/windows/64/swresample.lib"
+        ]
       ]
     ]
   ]

@@ -2,20 +2,21 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :membrane_element_ffmpeg_swresample,
-     compilers: ~w(bundlex.lib) ++ Mix.compilers,
-     version: "0.0.1",
-     elixir: "~> 1.6",
-     elixirc_paths: elixirc_paths(Mix.env),
-     description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
-     maintainers: ["Marcin Lewandowski", "Mateusz Front"],
-     licenses: ["Apache 2.0"],
-     name: "Membrane Element: FFmpeg SWResample",
-     source_url: "git@github.com:membraneframework/membrane-element-FFmpeg-swresample.git",
-     preferred_cli_env: [espec: :test],
-     deps: deps()]
+    [
+      app: :membrane_element_ffmpeg_swresample,
+      compilers: ~w(bundlex.lib) ++ Mix.compilers(),
+      version: "0.0.1",
+      elixir: "~> 1.6",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
+      maintainers: ["Marcin Lewandowski", "Mateusz Front"],
+      licenses: ["Apache 2.0"],
+      name: "Membrane Element: FFmpeg SWResample",
+      source_url: "git@github.com:membraneframework/membrane-element-FFmpeg-swresample.git",
+      preferred_cli_env: [espec: :test],
+      deps: deps()
+    ]
   end
-
 
   def application do
     [
@@ -24,10 +25,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
     ]
   end
 
-
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib",]
-
+  defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
     [
@@ -35,7 +34,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
       {:membrane_caps_audio_raw, git: "git@github.com:membraneframework/membrane-caps-audio-raw.git"},
       {:membrane_common_c, git: "git@github.com:membraneframework/membrane-common-c.git"},
       {:bundlex, git: "git@github.com:radiokit/bundlex.git"},
-      {:espec, "~> 1.5", only: :test},
+      {:espec, "~> 1.5", only: :test}
     ]
   end
 end
