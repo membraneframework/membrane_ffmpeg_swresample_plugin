@@ -1,4 +1,7 @@
 defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
+  @moduledoc """
+  This module provides wrappers for NIFs utilizing C SWResample library
+  """
   require Bundlex.Loader
 
   @on_load :load_nifs
@@ -17,8 +20,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   Function creating native handler of converter.
 
   Expects sample format (encoded as integer, using
-  Membrane.Caps.Audio.Raw.SerializedFormat), sample rate and number of channels
+  `Membrane.Caps.Audio.Raw.Format.serialize/1`), sample rate and number of channels
   for input and output data, respectively.
+
+  Currently supported formats are u8, s16le, s32le, f32le, f64le and s24le (input only)
 
   Returns {:ok, native_handle} or {:error, reason}.
   """

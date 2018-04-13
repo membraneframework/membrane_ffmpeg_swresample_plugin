@@ -74,9 +74,9 @@ static ERL_NIF_TERM export_create(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
   int ret_val;
   char from_s24le;
   ret_val = membrane_sample_fmt_to_av_sample_fmt(src_format, 0, &from_s24le, &src_av_format);
-  if(ret_val) return membrane_util_make_error_args(env, "src_channels", "Unsupported sample format");
+  if(ret_val) return membrane_util_make_error_args(env, "src_format", "Unsupported sample format");
   ret_val = membrane_sample_fmt_to_av_sample_fmt(dst_format, 1, NULL, &dst_av_format);
-  if(ret_val) return  membrane_util_make_error_args(env, "dst_channels", "Unsupported sample format");
+  if(ret_val) return  membrane_util_make_error_args(env, "dst_format", "Unsupported sample format");
   int64_t src_layout, dst_layout;
   ret_val = nb_channels_to_av_layout(src_channels, &src_layout);
   if(ret_val) return membrane_util_make_error_args(env, "src_channels", "Unsupported number of channels");

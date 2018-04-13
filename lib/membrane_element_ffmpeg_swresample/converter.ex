@@ -5,16 +5,17 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   """
   use Membrane.Element.Base.Filter
   alias Membrane.Caps.Audio.Raw, as: Caps
-  alias __MODULE__.Native
   alias Membrane.Buffer
   alias Membrane.Caps.Matcher
   use Membrane.Helper
 
+  @native Mockery.of(__MODULE__.Native)
+
   @supported_caps {Caps,
                    format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
-                   channels: Matcher.one_of([1, 2])}
+                   channels: Matcher.range(1, 2)}
 
-  def_known_source_pads source: {:always, :pull, @supported_caps}
+  def_known_source_pads source: {:always, :pull, [@supported_caps, {Caps, format: :s24le, channels: range(1, 2)}]}
 
   def_known_sink_pads sink: {:always, {:pull, demand_in: :bytes}, @supported_caps}
 
@@ -29,6 +30,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
               ],
               source_caps: [
                 type: :caps,
+                spec: Caps.t(),
                 description: """
                 Audio caps for souce pad (output)
                 """
@@ -93,7 +95,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
          %Caps{format: sink_format, sample_rate: sink_rate, channels: sink_channels},
          %Caps{format: src_format, sample_rate: src_rate, channels: src_channels}
        ) do
-    Native.create(
+    @native.create(
       sink_format |> Caps.Format.serialize(),
       sink_rate,
       sink_channels,
@@ -109,7 +111,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       (queue <> payload)
       |> Helper.Binary.int_rem(frame_size)
 
-    with {:ok, result} <- Native.convert(native, payload) do
+    with {:ok, result} <- @native.convert(native, payload) do
       {:ok, {result, q}}
     end
   end
