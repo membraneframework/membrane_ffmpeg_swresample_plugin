@@ -1,6 +1,6 @@
 defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   @moduledoc """
-  This module provides wrappers for NIFs utilizing C SWResample library
+  This module provides nativly implemented converter utilizing library swresample
   """
   require Bundlex.Loader
 
@@ -37,10 +37,15 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
 
   Expects the native handle, created with create/6 and binary data to convert.
 
-  Returns converted data.
+  Returns converted samples.
 
-  Note: Not all samples are guaranteed to be converted. Some of them may be stored
-  in handle to be converted when long enough chunk is collected.
+  When converter is doing sample rate conversion, which requires "future" samples,
+  samples will be buffered internally. In order to flush them,
+  invoke `convert/2` with an empty binary.
+
+  WARNING: Converter won't flush anything until it has enough samples for conversion to happen,
+  so you won't be able to resample only a couple of samples. The actual threshold depends on
+  conversion parameters.
   """
   @spec convert(handle_t, binary) :: {:ok, binary} | {:error, any}
   def convert(_native, _data), do: raise("NIF fail")

@@ -24,3 +24,8 @@ extern char* convert(
   uint8_t* input, int input_size,
   uint8_t** output, int* output_size
 );
+
+extern char* flush(
+  ConverterHandle* handle,
+  uint8_t** output, int* output_size
+);
