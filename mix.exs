@@ -1,19 +1,19 @@
 defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   use Mix.Project
+  Application.put_env(:bundlex, :membrane_element_ffmpeg_swresample, __ENV__)
 
   def project do
     [
       app: :membrane_element_ffmpeg_swresample,
-      compilers: ~w(bundlex.lib) ++ Mix.compilers(),
+      compilers: [:bundlex] ++ Mix.compilers(),
       version: "0.0.1",
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
       description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
-      maintainers: ["Marcin Lewandowski", "Mateusz Front"],
+      maintainers: ["Membrane Team"],
       licenses: ["Apache 2.0"],
       name: "Membrane Element: FFmpeg SWResample",
       source_url: "git@github.com:membraneframework/membrane-element-FFmpeg-swresample.git",
-      preferred_cli_env: [espec: :test],
       deps: deps()
     ]
   end
