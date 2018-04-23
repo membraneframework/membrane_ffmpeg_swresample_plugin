@@ -132,7 +132,16 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
 
     test "reduce samples size 8 times for s16le @ 48000 Hz -> u8 @ 24000 Hz conversion" do
       for size <- [1234, 5121, 20_480, 384_000] do
-        {:ok, handle} = @module.create(:s16le |> Raw.Format.serialize, 48_000, 2, :u8 |> Raw.Format.serialize, 24_000, 1)
+        {:ok, handle} =
+          @module.create(
+            :s16le |> Raw.Format.serialize(),
+            48_000,
+            2,
+            :u8 |> Raw.Format.serialize(),
+            24_000,
+            1
+          )
+
         input = for _ <- 1..size, do: <<:rand.uniform(255)>>, into: <<>>
         assert {:ok, res_head} = @module.convert(handle, input)
         assert {:ok, res_tail} = @module.convert(handle, <<>>)
@@ -143,7 +152,15 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
 
     test "reduce samples size approprietly for f32le @ 48000 Hz -> s16le @ 441000 Hz conversion" do
       for n <- [1, 10, 100] do
-        {:ok, handle} = @module.create(:f32le |> Raw.Format.serialize, 48_000, 2, :s16le |> Raw.Format.serialize, 44_100, 2)
+        {:ok, handle} =
+          @module.create(
+            :f32le |> Raw.Format.serialize(),
+            48_000,
+            2,
+            :s16le |> Raw.Format.serialize(),
+            44_100,
+            2
+          )
 
         # 2 channels, n * 480 samples per channel, 32 bits (4 bytes) each
         input = for _ <- 1..(2 * n * 480), do: <<:rand.uniform()::size(32)-float>>, into: <<>>
