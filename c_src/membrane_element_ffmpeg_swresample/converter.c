@@ -135,4 +135,4 @@ static ErlNifFunc nif_funcs[] =
   {"convert", 2, export_convert, 0}
 };
 
-ERL_NIF_INIT(Elixir.Membrane.Element.FFmpeg.SWResample.Converter.Native, nif_funcs, load, NULL, NULL, NULL);
+ERL_NIF_INIT(Elixir.Membrane.Element.FFmpeg.SWResample.Converter.Native.Nif, nif_funcs, load, NULL, NULL, NULL);

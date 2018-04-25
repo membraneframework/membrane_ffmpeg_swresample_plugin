@@ -2,17 +2,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   @moduledoc """
   This module provides nativly implemented converter utilizing library swresample
   """
-  require Bundlex.Loader
-
-  @on_load :load_nifs
-
-  @doc false
-  def load_nifs do
-    Bundlex.Loader.load_lib_nif!(
-      :membrane_element_ffmpeg_swresample,
-      :membrane_element_ffmpeg_swresample_converter
-    )
-  end
+  use Bundlex.Loader, nif: :membrane_element_ffmpeg_swresample_converter
 
   @opaque handle_t :: reference()
 
@@ -29,8 +19,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   """
   @spec create(integer, integer, integer, integer, integer, integer) ::
           {:ok, handle_t} | {:error, any}
-  def create(_sink_format, _sink_rate, _sink_channels, _src_format, _src_rate, _src_channels),
-    do: raise("NIF fail")
+  defnif create(_sink_format, _sink_rate, _sink_channels, _src_format, _src_rate, _src_channels)
 
   @doc """
   Function that converts data according to a native handle.
@@ -48,5 +37,5 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   conversion parameters.
   """
   @spec convert(handle_t, binary) :: {:ok, binary} | {:error, any}
-  def convert(_native, _data), do: raise("NIF fail")
+  defnif convert(_native, _data)
 end
