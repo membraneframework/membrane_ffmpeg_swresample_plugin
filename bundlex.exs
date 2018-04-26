@@ -3,12 +3,12 @@ defmodule Membrane.Element.FFmpeg.SWResample.BundlexProject do
 
   def project do
     [
-      nif: [
+      nifs: [
         membrane_element_ffmpeg_swresample_converter: [
           sources: ["converter.c", "converter_lib.c"],
           deps: [membrane_common_c: :membrane],
           includes: ["ext/include"],
-          libs: libs(Bundlex.platform() |> elem(0))
+          libs: libs(Bundlex.platform())
         ]
       ]
     ]
