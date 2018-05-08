@@ -24,7 +24,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
       state: %{
         sink_caps: nil,
         source_caps: @u8_caps,
-        samples_per_buffer: 2048,
+        frames_per_buffer: 2048,
         native: nil,
         queue: <<>>
       }
@@ -144,9 +144,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
     test "calculate and pass proper demand in bytes if converter have been created and demand was in buffers",
          %{state: initial_state} do
       state = %{initial_state | native: :not_nil, sink_caps: @s16le_caps}
-      assert {{:ok, commands}, ^state} = @module.handle_demand(:source, 1, :buffers, nil, state)
-      # buffer_size = samples_per_buffer * number_of_channels * bytes_per_sample
-      buffer_size = state.samples_per_buffer * Raw.sample_size(state.sink_caps)
+      assert {{:ok, commands}, ^state} = @module.handle_demand(:source, 2, :buffers, nil, state)
+      buffers_size = 2 * state.frames_per_buffer * Raw.sample_size(state.sink_caps) * state.sink_caps.channels
       assert commands == [demand: {:sink, buffer_size}]
     end
 

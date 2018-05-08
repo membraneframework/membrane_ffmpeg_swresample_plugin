@@ -38,12 +38,13 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
                 Audio caps for souce pad (output)
                 """
               ],
-              samples_per_buffer: [
+              frames_per_buffer: [
                 type: :integer,
                 spec: pos_integer(),
                 default: 2048,
                 description: """
-                Assumed number of audio samples in each buffer. Used when converting demand from buffers into bytes.
+                Assumed number of raw audio frames in each buffer.
+                Used when converting demand from buffers into bytes.
                 """
               ]
 
@@ -95,7 +96,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   def handle_demand(:source, size, :bytes, _, state), do: {{:ok, demand: {:sink, size}}, state}
 
   def handle_demand(:source, n_buffers, :buffers, _, state) do
-    size = state.samples_per_buffer * n_buffers * (state.sink_caps |> Caps.sample_size())
+    size = n_buffers * Caps.frames_to_bytes(state.frames_per_buffer, state.sink_caps)
     {{:ok, demand: {:sink, size}}, state}
   end
 
