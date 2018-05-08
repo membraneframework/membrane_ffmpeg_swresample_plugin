@@ -24,10 +24,37 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
       state: %{
         sink_caps: nil,
         source_caps: @u8_caps,
+        samples_per_buffer: 2048,
         native: nil,
         queue: <<>>
       }
     }
+  end
+
+  def test_handle_caps(state) do
+    Mockery.History.enable_history()
+    mock(@native, [create: 6], {:ok, :mock_handle})
+
+    assert {{:ok, commands}, new_state} = @module.handle_caps(:sink, @s16le_caps, nil, state)
+    assert length(commands) == 2
+    assert {:source, state.source_caps} == commands[:caps]
+    assert :source == commands[:redemand]
+
+    assert %{native: :mock_handle} = new_state
+
+    sink_fmt = @s16le_caps.format |> Raw.Format.serialize()
+    sink_rate = @s16le_caps.sample_rate
+    sink_channel = @s16le_caps.channels
+    src_fmt = @u8_caps.format |> Raw.Format.serialize()
+    src_rate = @u8_caps.sample_rate
+    src_channel = @u8_caps.channels
+
+    assert_called(
+      @native,
+      :create,
+      [^sink_fmt, ^sink_rate, ^sink_channel, ^src_fmt, ^src_rate, ^src_channel],
+      1
+    )
   end
 
   setup_all :initial_state
@@ -76,32 +103,25 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
   end
 
   describe "handle_caps/4" do
-    test "given new caps should create native resource and store it in state", %{
-      state: state
+    test "given new caps when sink_caps were not set should create native resource and store it in state",
+         %{state: state} do
+      test_handle_caps(state)
+    end
+
+    test "given the same caps as set in options should create native resource and store it in state",
+         %{state: initial_state} do
+      state = %{initial_state | sink_caps: @s16le_caps}
+      test_handle_caps(state)
+    end
+
+    test "should raise when received caps don't match caps sink_caps set in options", %{
+      state: initial_state
     } do
-      Mockery.History.enable_history()
-      mock(@native, [create: 6], {:ok, :mock_handle})
+      state = %{initial_state | sink_caps: @s16le_caps}
 
-      assert {{:ok, commands}, new_state} = @module.handle_caps(:sink, @s16le_caps, nil, state)
-      assert length(commands) == 2
-      assert {:source, state.source_caps} == commands[:caps]
-      assert :source == commands[:redemand]
-
-      assert %{native: :mock_handle} = new_state
-
-      sink_fmt = @s16le_caps.format |> Raw.Format.serialize()
-      sink_rate = @s16le_caps.sample_rate
-      sink_channel = @s16le_caps.channels
-      src_fmt = @u8_caps.format |> Raw.Format.serialize()
-      src_rate = @u8_caps.sample_rate
-      src_channel = @u8_caps.channels
-
-      assert_called(
-        @native,
-        :create,
-        [^sink_fmt, ^sink_rate, ^sink_channel, ^src_fmt, ^src_rate, ^src_channel],
-        1
-      )
+      assert_raise RuntimeError, fn ->
+        @module.handle_caps(:sink, @u8_caps, nil, state)
+      end
     end
 
     test "if native cannot be created returns an error with reason and untouched state", %{
@@ -113,10 +133,21 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
   end
 
   describe "handle_demand/4 should" do
-    test "pass the demand if converter have been created", %{state: initial_state} do
+    test "pass the demand if converter have been created and demand was in bytes", %{
+      state: initial_state
+    } do
       state = %{initial_state | native: :not_nil}
       assert {{:ok, commands}, ^state} = @module.handle_demand(:source, 42, :bytes, nil, state)
       assert commands == [demand: {:sink, 42}]
+    end
+
+    test "calculate and pass proper demand in bytes if converter have been created and demand was in buffers",
+         %{state: initial_state} do
+      state = %{initial_state | native: :not_nil, sink_caps: @s16le_caps}
+      assert {{:ok, commands}, ^state} = @module.handle_demand(:source, 1, :buffers, nil, state)
+      # buffer_size = samples_per_buffer * number_of_channels * bytes_per_sample
+      buffer_size = state.samples_per_buffer * Raw.sample_size(state.sink_caps)
+      assert commands == [demand: {:sink, buffer_size}]
     end
 
     test "ignore the demands if converter haven't been created", %{state: state} do
