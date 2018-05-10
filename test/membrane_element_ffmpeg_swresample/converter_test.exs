@@ -145,7 +145,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
          %{state: initial_state} do
       state = %{initial_state | native: :not_nil, sink_caps: @s16le_caps}
       assert {{:ok, commands}, ^state} = @module.handle_demand(:source, 2, :buffers, nil, state)
-      buffers_size = 2 * state.frames_per_buffer * Raw.sample_size(state.sink_caps) * state.sink_caps.channels
+
+      buffers_size =
+        2 * state.frames_per_buffer * Raw.sample_size(state.sink_caps) * state.sink_caps.channels
+
       assert commands == [demand: {:sink, buffer_size}]
     end
 

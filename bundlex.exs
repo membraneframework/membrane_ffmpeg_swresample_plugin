@@ -8,8 +8,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.BundlexProject do
           [
             sources: ["converter.c", "converter_lib.c"],
             deps: [membrane_common_c: :membrane]
-          ]
-          ++ platform_specific(Bundlex.platform())
+          ] ++ platform_specific(Bundlex.platform())
       ]
     ]
   end

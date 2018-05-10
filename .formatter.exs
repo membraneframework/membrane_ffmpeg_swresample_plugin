@@ -1,8 +1,8 @@
 [
   inputs: [
     "{lib,test,config}/**/*.{ex,exs}",
-    "{mix,bundlex,.formatter}.exs"
+    "*.exs",
+    ".formatter.exs"
   ],
   import_deps: [:membrane_core, :bundlex]
 ]
-
