@@ -15,11 +15,11 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
                    format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
                    channels: Matcher.range(1, 2)}
 
-  def_known_source_pads source:
-                          {:always, :pull,
-                           [@supported_caps, {Caps, format: :s24le, channels: range(1, 2)}]}
+  def_known_source_pads source: {:always, :pull, @supported_caps}
 
-  def_known_sink_pads sink: {:always, {:pull, demand_in: :bytes}, @supported_caps}
+  def_known_sink_pads sink:
+                        {:always, {:pull, demand_in: :bytes},
+                         [@supported_caps, {Caps, format: :s24le, channels: range(1, 2)}]}
 
   def_options sink_caps: [
                 type: :caps,

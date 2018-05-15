@@ -149,7 +149,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
       buffers_size =
         2 * state.frames_per_buffer * Raw.sample_size(state.sink_caps) * state.sink_caps.channels
 
-      assert commands == [demand: {:sink, buffer_size}]
+      assert commands == [demand: {:sink, buffers_size}]
     end
 
     test "ignore the demands if converter haven't been created", %{state: state} do
