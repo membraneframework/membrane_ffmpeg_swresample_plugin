@@ -31,26 +31,13 @@ defmodule Resampling.Pipeline do
     {{:ok, %Spec{children: children, links: links}}, %{}}
   end
 end
-
-defmodule Resampling.App do
-  use Application
-  alias Membrane.Pipeline
-
-  def start(_, _) do
-    {:ok, pid} = Pipeline.start_link(Resampling.Pipeline, nil, [])
-    Pipeline.play(pid)
-
-    children = []
-    opts = [strategy: :one_for_one, name: __MODULE__]
-    Supervisor.start_link(children, opts)
-  end
-end
 ```
 
 ## Using on Windows
 
 It is possible to compile and use this element on Windows platform. That requires:
 
+* Git-LFS to clone binaries placed in `ext/windows` directory
 * Visual C++ Build Tools with Windows SDK (tested on build tools 2015 and SDK for Windows 10)
 * FFMpeg 3.4.2 DLLs - `avutil-55.dll` and `swresample-2.dll`
   (64-bit version abvailable [here](https://ffmpeg.zeranoe.com/builds/win64/shared/ffmpeg-3.4.2-win64-shared.zip),
