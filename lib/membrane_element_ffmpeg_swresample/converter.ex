@@ -110,6 +110,11 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     process_payload(payload, caps, state)
   end
 
+  @impl true
+  def handle_stop(state) do
+    {:ok, %{state | native: nil}}
+  end
+
   defp do_handle_caps(caps, state) do
     with {:ok, native} <- mk_native(caps, state.source_caps) do
       {{:ok, caps: {:source, state.source_caps}, redemand: :source}, %{state | native: native}}
