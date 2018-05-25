@@ -185,4 +185,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
       assert new_state == %{state | queue: <<0::2*8>>}
     end
   end
+
+  test "handle_stop should remove native from state", %{state: initial_state} do
+    state = %{initial_state | native: :mock_handle}
+    assert {:ok, new_state} = @module.handle_stop(state)
+    assert new_state == %{state | native: nil}
+  end
 end
