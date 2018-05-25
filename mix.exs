@@ -10,8 +10,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
       description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
-      maintainers: ["Membrane Team"],
-      licenses: ["Apache 2.0"],
+      package: package(),
       name: "Membrane Element: FFmpeg SWResample",
       source_url: "git@github.com:membraneframework/membrane-element-FFmpeg-swresample.git",
       deps: deps()
@@ -27,6 +26,13 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp package do
+    [
+      maintainers: ["Membrane Team"],
+      licenses: ["Apache 2.0"]
+    ]
+  end
 
   defp deps do
     [
