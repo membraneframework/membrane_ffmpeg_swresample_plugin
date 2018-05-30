@@ -74,9 +74,9 @@ static ERL_NIF_TERM export_create(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
   int ret_val;
   char from_s24le;
   ret_val = membrane_sample_fmt_to_av_sample_fmt(src_format, 0, &from_s24le, &src_av_format);
-  if(ret_val) return membrane_util_make_error_args(env, "src_channels", "Unsupported sample format");
+  if(ret_val) return membrane_util_make_error_args(env, "src_format", "Unsupported sample format");
   ret_val = membrane_sample_fmt_to_av_sample_fmt(dst_format, 1, NULL, &dst_av_format);
-  if(ret_val) return  membrane_util_make_error_args(env, "dst_channels", "Unsupported sample format");
+  if(ret_val) return  membrane_util_make_error_args(env, "dst_format", "Unsupported sample format");
   int64_t src_layout, dst_layout;
   ret_val = nb_channels_to_av_layout(src_channels, &src_layout);
   if(ret_val) return membrane_util_make_error_args(env, "src_channels", "Unsupported number of channels");
@@ -108,21 +108,22 @@ static ERL_NIF_TERM export_convert(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
 
 
   ERL_NIF_TERM output_binary_term;
+  uint8_t* output;
+  int output_size;
+  char * conversion_error;
   if(input.size > 0) {
-    uint8_t* output;
-    int output_size;
-    char* conversion_error = convert(handle, (uint8_t*) input.data, input.size, &output, &output_size);
-    if(conversion_error)
-      return membrane_util_make_error_internal(env, conversion_error);
-
-    unsigned char* data_ptr;
-    data_ptr = enif_make_new_binary(env, output_size, &output_binary_term);
-    memcpy(data_ptr, output, output_size);
-    // av_freep(&output);
-    free(output);
+    conversion_error = convert(handle, (uint8_t*) input.data, input.size, &output, &output_size);
   } else {
-    enif_make_new_binary(env, 0, &output_binary_term);
+    conversion_error = flush(handle, &output, &output_size);
   }
+  if(conversion_error) {
+    return membrane_util_make_error_internal(env, conversion_error);
+  }
+
+  unsigned char* data_ptr;
+  data_ptr = enif_make_new_binary(env, output_size, &output_binary_term);
+  memcpy(data_ptr, output, output_size);
+  av_freep(&output);
 
   return membrane_util_make_ok_tuple(env, output_binary_term);
 }
@@ -134,4 +135,4 @@ static ErlNifFunc nif_funcs[] =
   {"convert", 2, export_convert, 0}
 };
 
-ERL_NIF_INIT(Elixir.Membrane.Element.FFmpeg.SWResample.Converter.Native, nif_funcs, load, NULL, NULL, NULL);
+ERL_NIF_INIT(Elixir.Membrane.Element.FFmpeg.SWResample.Converter.Native.Nif, nif_funcs, load, NULL, NULL, NULL);
