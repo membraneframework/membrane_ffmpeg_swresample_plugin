@@ -152,7 +152,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
        when byte_size(queue) + byte_size(payload) > 2 * frame_size do
     {payload, q} =
       (queue <> payload)
-      |> Helper.Binary.int_rem(frame_size)
+      |> binary_int_rem(frame_size)
 
     with {:ok, result} <- @native.convert(native, payload) do
       {:ok, {result, q}}
@@ -160,4 +160,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   defp convert(_native, _frame_size, payload, queue), do: {:ok, {<<>>, queue <> payload}}
+
+  defp binary_int_rem(b, d) when is_binary(b) and is_integer(d) do
+    len = b |> byte_size |> int_part(d)
+    <<b::binary-size(len), r::binary>> = b
+    {b, r}
+  end
 end

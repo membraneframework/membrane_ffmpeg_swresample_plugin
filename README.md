@@ -1,6 +1,19 @@
 # Membrane.Element.FFmpeg.SWResample
 
-This element performs audio conversion, resampling and channel mixing, using SWResample module of FFmpeg library.
+Element of [Membrane Multimedia Framework](https://membraneframework.org) performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
+
+Documentation is available at [HexDocs](https://hexdocs.pm/membrane_element_portaudio/)
+
+## Installation
+
+Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
+
+```elixir
+{:membrane_element_ffmpeg_swresample, "~> 0.1"}
+```
+
+You also need to have [FFmpeg](https://www.ffmpeg.org/) library installed.
+For usage on windows, see `Using on Windows` section below.
 
 ## Sample usage
 

@@ -2,6 +2,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   use Mix.Project
   Application.put_env(:bundlex, :membrane_element_ffmpeg_swresample, __ENV__)
 
+  @github_url "https://github.com/membraneframework/membrane-element-ffmpeg-swresample"
+
   def project do
     [
       app: :membrane_element_ffmpeg_swresample,
@@ -12,8 +14,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
       description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
       package: package(),
       name: "Membrane Element: FFmpeg SWResample",
-      source_url: link(),
-      homepage_url: "https://membraneframework.org",
+      source_url: @github_url,
+      docs: docs(),
       deps: deps()
     ]
   end
@@ -28,26 +30,41 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp link do
-    "https://github.com/membraneframework/membrane-element-ffmpeg-swresample"
+  defp docs do
+    [
+      main: "readme",
+      extras: ["README.md"]
+    ]
   end
 
   defp package do
     [
       maintainers: ["Membrane Team"],
       licenses: ["Apache 2.0"],
-      links: %{"GitHub" => link()}
+      links: %{
+        "GitHub" => @github_url,
+        "Membrane Framework Homepage" => "https://membraneframework.org"
+      },
+      files: [
+        "lib",
+        "c_src",
+        "ext",
+        "mix.exs",
+        "README*",
+        "LICENSE*",
+        ".formatter.exs",
+        "bundlex.exs"
+      ]
     ]
   end
 
   defp deps do
     [
       {:ex_doc, "~> 0.18", only: :dev, runtime: false},
-      {:membrane_core, git: "git@github.com:membraneframework/membrane-core.git"},
-      {:membrane_caps_audio_raw,
-       git: "git@github.com:membraneframework/membrane-caps-audio-raw.git"},
-      {:membrane_common_c, git: "git@github.com:membraneframework/membrane-common-c.git"},
-      {:bundlex, git: "git@github.com:radiokit/bundlex.git"},
+      {:membrane_core, "~> 0.1"},
+      {:membrane_caps_audio_raw, "~> 0.1"},
+      {:membrane_common_c, "~> 0.1"},
+      {:bundlex, "~> 0.1"},
       {:mockery, "~> 2.1", runtime: false}
     ]
   end
