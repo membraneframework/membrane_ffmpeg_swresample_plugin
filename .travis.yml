@@ -6,3 +6,7 @@ otp_release:
   - 20.0
 sudo: false
 
+before_install:
+- sudo add-apt-repository ppa:mc3man/trusty-media -qq
+- sudo apt-get update -qq
+- sudo apt-get install -qq libswresample-dev

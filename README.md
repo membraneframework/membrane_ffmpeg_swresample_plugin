@@ -1,5 +1,7 @@
 # Membrane.Element.FFmpeg.SWResample
 
+[![Build Status](https://travis-ci.com/membraneframework/membrane-element-ffmpeg-swresample.svg?branch=master)](https://travis-ci.com/membraneframework/membrane-element-ffmpeg-swresample)
+
 Element of [Membrane Multimedia Framework](https://membraneframework.org) performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
 
 Documentation is available at [HexDocs](https://hexdocs.pm/membrane_element_portaudio/)
