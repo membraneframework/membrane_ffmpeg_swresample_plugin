@@ -1,6 +1,7 @@
 %{
   "bimap": {:hex, :bimap, "0.1.1", "f0406e59f65ba903af678383d2356d0a6e59fb794adc1a7dd32bd8fabe0f028f", [:mix], [], "hexpm"},
   "bunch": {:git, "https://github.com/membraneframework/bunch.git", "b1873c889704b9a08d61f04549a7f2dbf4e1358d", []},
+  "bunch_native": {:hex, :bunch_native, "0.1.1", "9895b2cf5e5c6847af5de80c8d485ea9c69021a21e74c7237ab64e7a225c06c2", [:mix], [{:bundlex, "~> 0.1", [hex: :bundlex, repo: "hexpm", optional: false]}], "hexpm"},
   "bundlex": {:hex, :bundlex, "0.1.3", "f55cce979fe656e48ae7fc4d36a90c65fce907632d65b54828388735a71b840b", [:mix], [{:porcelain, "~> 2.0", [hex: :porcelain, repo: "hexpm", optional: false]}], "hexpm"},
   "connection": {:hex, :connection, "1.0.4", "a1cae72211f0eef17705aaededacac3eb30e6625b04a6117c1b2db6ace7d5976", [:mix], []},
   "earmark": {:hex, :earmark, "1.2.6", "b6da42b3831458d3ecc57314dff3051b080b9b2be88c2e5aa41cd642a5b044ed", [:mix], [], "hexpm"},
@@ -9,10 +10,12 @@
   "makeup_elixir": {:hex, :makeup_elixir, "0.10.0", "0f09c2ddf352887a956d84f8f7e702111122ca32fbbc84c2f0569b8b65cbf7fa", [:mix], [{:makeup, "~> 0.5.5", [hex: :makeup, repo: "hexpm", optional: false]}], "hexpm"},
   "membrane_caps_audio_mpeg": {:git, "git@github.com:membraneframework/membrane-caps-audio-mpeg.git", "4f29dec1b3058cdf1d113484240569b64d4334b2", []},
   "membrane_caps_audio_raw": {:git, "https://github.com/membraneframework/membrane-caps-audio-raw.git", "14ad9ca2ff06a46c4738d135569f5beb3775efe5", []},
-  "membrane_common_c": {:hex, :membrane_common_c, "0.1.0", "1ca2ca66b9244a8f08efa2d43ca56d149c91e63b198f386857ec1b25c91119ec", [:mix], [{:bundlex, "~> 0.1", [hex: :bundlex, repo: "hexpm", optional: false]}], "hexpm"},
+  "membrane_common_c": {:git, "https://github.com/membraneframework/membrane-common-c.git", "7c5b720426e329fc3b42ef49b6db0f29b39b5a8f", []},
   "membrane_core": {:git, "https://github.com/membraneframework/membrane-core.git", "840ecff1e8238dd3f2b60e31ef00c3f66ccc45c0", []},
   "mockery": {:hex, :mockery, "2.2.0", "67304d5e1d247e698b171913689369bd23c94e437b4a8f32777c6f74b98cb36f", [:mix], [], "hexpm"},
   "nimble_parsec": {:hex, :nimble_parsec, "0.4.0", "ee261bb53214943679422be70f1658fff573c5d0b0a1ecd0f18738944f818efe", [:mix], [], "hexpm"},
   "porcelain": {:hex, :porcelain, "2.0.3", "2d77b17d1f21fed875b8c5ecba72a01533db2013bd2e5e62c6d286c029150fdc", [:mix], [], "hexpm"},
   "qex": {:hex, :qex, "0.5.0", "5a3a9becf67d4006377c4c247ffdaaa8ae5b3634a0caadb788dc24d6125068f4", [:mix], [], "hexpm"},
+  "shmex": {:git, "https://github.com/membraneframework/shmex.git", "379d4a91b4641922240d2ae1beb202f05671fc23", []},
+  "unifex": {:git, "https://github.com/membraneframework/unifex.git", "084f88c2768dd3f644491f1d93e2545f4790decf", []},
 }

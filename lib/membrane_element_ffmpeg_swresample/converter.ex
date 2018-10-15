@@ -153,7 +153,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       (queue <> payload)
       |> binary_int_rem(frame_size)
 
-    with {:ok, result} <- native().convert(native, payload) do
+    with {:ok, result} <- native().convert(payload, native) do
       {:ok, {result, q}}
     end
   end

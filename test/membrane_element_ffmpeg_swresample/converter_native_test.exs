@@ -95,15 +95,15 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
   describe "convert/2 should" do
     test "return an empty binary for empty input" do
       {:ok, handle} = mk_simple_converter(:s16le, :u8)
-      assert @module.convert(handle, <<>>) == {:ok, <<>>}
+      assert @module.convert(<<>>, handle) == {:ok, <<>>}
     end
 
     test "convert s16le samples to u8" do
       {:ok, handle} = mk_simple_converter(:s16le, :u8)
       # convert 8 s16le samples
-      assert {:ok, <<result::binary>>} = @module.convert(handle, <<0::128>>)
+      assert {:ok, <<result::binary>>} = @module.convert(<<0::128>>, handle)
       # make sure nothing has been buffored
-      assert @module.convert(handle, <<>>) == {:ok, <<>>}
+      assert @module.convert(<<>>, handle) == {:ok, <<>>}
       assert byte_size(result) == 8
 
       result
@@ -117,9 +117,9 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     test "convert s24le samples to s16le" do
       {:ok, handle} = mk_simple_converter(:s24le, :s16le)
       # convert 8 s24le samples
-      assert {:ok, <<result::binary>>} = @module.convert(handle, <<0::192>>)
+      assert {:ok, <<result::binary>>} = @module.convert(<<0::192>>, handle)
       # make sure nothing has been buffored
-      assert @module.convert(handle, <<>>) == {:ok, <<>>}
+      assert @module.convert(<<>>, handle) == {:ok, <<>>}
       assert byte_size(result) == 16
 
       result
@@ -143,8 +143,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
           )
 
         input = for _ <- 1..size, do: <<:rand.uniform(255)>>, into: <<>>
-        assert {:ok, res_head} = @module.convert(handle, input)
-        assert {:ok, res_tail} = @module.convert(handle, <<>>)
+        assert {:ok, res_head} = @module.convert(input, handle)
+        assert {:ok, res_tail} = @module.convert(<<>>, handle)
         result = res_head <> res_tail
         assert round(byte_size(input) / 8) == byte_size(result)
       end
@@ -166,8 +166,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
         input = for _ <- 1..(2 * n * 480), do: <<:rand.uniform()::size(32)-float>>, into: <<>>
         assert byte_size(input) == 2 * n * 480 * 4
 
-        assert {:ok, res_head} = @module.convert(handle, input)
-        assert {:ok, res_tail} = @module.convert(handle, <<>>)
+        assert {:ok, res_head} = @module.convert(input, handle)
+        assert {:ok, res_tail} = @module.convert(<<>>, handle)
 
         result = res_head <> res_tail
         # 2 channels, n * 441 samples per channel, 16 bits (2 bytes) each

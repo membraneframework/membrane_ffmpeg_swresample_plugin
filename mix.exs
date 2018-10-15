@@ -7,7 +7,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   def project do
     [
       app: :membrane_element_ffmpeg_swresample,
-      compilers: [:bundlex] ++ Mix.compilers(),
+      compilers: [:unifex, :bundlex] ++ Mix.compilers(),
       version: "0.1.0",
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -64,8 +64,9 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
       # {:membrane_core, "~> 0.1"},
       {:membrane_core, github: "membraneframework/membrane-core"},
       {:membrane_caps_audio_raw, github: "membraneframework/membrane-caps-audio-raw"},
-      {:bunch, github: "membraneframework/bunch"},
-      {:membrane_common_c, "~> 0.1"},
+      {:bunch, github: "membraneframework/bunch", override: true},
+      {:unifex, github: "membraneframework/unifex"},
+      {:membrane_common_c, github: "membraneframework/membrane-common-c"},
       {:bundlex, "~> 0.1"},
       {:mockery, "~> 2.1", runtime: false}
     ]

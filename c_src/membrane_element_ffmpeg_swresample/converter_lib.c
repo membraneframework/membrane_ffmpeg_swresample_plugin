@@ -1,7 +1,7 @@
 #include "converter_lib.h"
 
-char* init(
-  ConverterHandle* handle,
+char* lib_init(
+  ConverterState* state,
   char from_s24le,
   enum AVSampleFormat src_sample_fmt, int src_rate, int64_t src_ch_layout,
   enum AVSampleFormat dst_sample_fmt, int dst_rate, int64_t dst_ch_layout
@@ -24,7 +24,7 @@ char* init(
   if(swr_init(swr_ctx) < 0)
     return "Failed to initialize the resampling context";
 
-  *handle = (ConverterHandle) {
+  *state = (ConverterState) {
     .swr_ctx = swr_ctx,
     .src_rate = src_rate,
     .dst_rate = dst_rate,
@@ -38,8 +38,8 @@ char* init(
   return NULL;
 }
 
-static char* free_conversion_data(char* error, ConverterHandle* handle, uint8_t* input, uint8_t** src_data, uint8_t** dst_data) {
-  if(handle->from_s24le && input) {
+static char* free_conversion_data(char* error, ConverterState* state, uint8_t* input, uint8_t** src_data, uint8_t** dst_data) {
+  if(state->from_s24le && input) {
     free(input);
   }
 
@@ -86,9 +86,9 @@ static char* convert_s24le_to_s32le(uint8_t** data, int* data_size) {
   return NULL;
 }
 
-char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t** output, int* output_size) {
+char* lib_convert(ConverterState* state, uint8_t* input, int input_size, uint8_t** output, int* output_size) {
 
-  if(handle->from_s24le) {
+  if(state->from_s24le) {
     char* res = convert_s24le_to_s32le(&input, &input_size);
     if(res) {
       return res;
@@ -97,47 +97,47 @@ char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t**
 
   uint8_t **src_data = NULL, **dst_data = NULL;
   int src_linesize, dst_linesize;
-  int src_nb_samples = input_size / handle->src_nb_channels / av_get_bytes_per_sample(handle->src_sample_fmt);
+  int src_nb_samples = input_size / state->src_nb_channels / av_get_bytes_per_sample(state->src_sample_fmt);
 
 
   if(0 > av_samples_alloc_array_and_samples(
       &src_data,
       &src_linesize,
-      handle->src_nb_channels,
+      state->src_nb_channels,
       src_nb_samples,
-      handle->src_sample_fmt,
+      state->src_sample_fmt,
       0
     )) {
-      return free_conversion_data("Could not allocate source samples", handle, input, src_data, dst_data);
+      return free_conversion_data("Could not allocate source samples", state, input, src_data, dst_data);
     }
 
   memcpy(src_data[0], input, av_samples_get_buffer_size(
     &src_linesize,
-    handle->src_nb_channels,
+    state->src_nb_channels,
     src_nb_samples,
-    handle->src_sample_fmt,
+    state->src_sample_fmt,
     1
   ));
 
   int max_dst_nb_samples = av_rescale_rnd(
-    swr_get_delay(handle-> swr_ctx, handle->src_rate) + src_nb_samples,
-    handle->dst_rate,
-    handle->src_rate,
+    swr_get_delay(state-> swr_ctx, state->src_rate) + src_nb_samples,
+    state->dst_rate,
+    state->src_rate,
     AV_ROUND_UP
   );
 
   if (0 > av_samples_alloc_array_and_samples(
     &dst_data,
     &dst_linesize,
-    handle->dst_nb_channels,
+    state->dst_nb_channels,
     max_dst_nb_samples,
-    handle->dst_sample_fmt,
+    state->dst_sample_fmt,
     0)) {
-      return free_conversion_data("Could not allocate destination samples", handle, input, src_data, dst_data);
+      return free_conversion_data("Could not allocate destination samples", state, input, src_data, dst_data);
     }
 
   int dst_nb_samples = swr_convert(
-    handle->swr_ctx,
+    state->swr_ctx,
     dst_data,
     max_dst_nb_samples,
     (const uint8_t **)src_data,
@@ -145,7 +145,7 @@ char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t**
   );
 
   if (dst_nb_samples < 0) {
-    return free_conversion_data("Error while converting", handle, input, src_data, dst_data);
+    return free_conversion_data("Error while converting", state, input, src_data, dst_data);
   }
 
   if (dst_nb_samples == 0) {
@@ -153,33 +153,33 @@ char* convert(ConverterHandle* handle, uint8_t* input, int input_size, uint8_t**
   } else {
     *output_size = av_samples_get_buffer_size(
       &dst_linesize,
-      handle->dst_nb_channels,
+      state->dst_nb_channels,
       dst_nb_samples,
-      handle->dst_sample_fmt,
+      state->dst_sample_fmt,
       1
     );
 
     if(*output_size < 0) {
-      return free_conversion_data("Error calculating output size", handle, input, src_data, dst_data);
+      return free_conversion_data("Error calculating output size", state, input, src_data, dst_data);
     }
   }
 
 
   *output = dst_data[0];
-  free_conversion_data(NULL, handle, input, src_data, dst_data);
+  free_conversion_data(NULL, state, input, src_data, dst_data);
 
   return NULL;
 }
 
-char* flush(ConverterHandle* handle, uint8_t** output, int* output_size) {
+char* lib_flush(ConverterState* state, uint8_t** output, int* output_size) {
 
   uint8_t **dst_data = NULL;
   int dst_linesize;
 
   int max_dst_nb_samples = av_rescale_rnd(
-    swr_get_delay(handle-> swr_ctx, handle->src_rate),
-    handle->dst_rate,
-    handle->src_rate,
+    swr_get_delay(state-> swr_ctx, state->src_rate),
+    state->dst_rate,
+    state->src_rate,
     AV_ROUND_UP
   );
 
@@ -192,15 +192,15 @@ char* flush(ConverterHandle* handle, uint8_t** output, int* output_size) {
   if (0 > av_samples_alloc_array_and_samples(
     &dst_data,
     &dst_linesize,
-    handle->dst_nb_channels,
+    state->dst_nb_channels,
     max_dst_nb_samples,
-    handle->dst_sample_fmt,
+    state->dst_sample_fmt,
     0)) {
-      return free_conversion_data("Could not allocate destination samples", handle, NULL, NULL, dst_data);
+      return free_conversion_data("Could not allocate destination samples", state, NULL, NULL, dst_data);
   }
 
   int dst_nb_samples = swr_convert(
-    handle->swr_ctx,
+    state->swr_ctx,
     dst_data,
     max_dst_nb_samples,
     NULL,
@@ -208,7 +208,7 @@ char* flush(ConverterHandle* handle, uint8_t** output, int* output_size) {
   );
 
   if (dst_nb_samples < 0) {
-    return free_conversion_data("Error while converting", handle, NULL, NULL, dst_data);
+    return free_conversion_data("Error while converting", state, NULL, NULL, dst_data);
   }
 
   if (dst_nb_samples == 0) {
@@ -216,18 +216,18 @@ char* flush(ConverterHandle* handle, uint8_t** output, int* output_size) {
   } else {
     *output_size = av_samples_get_buffer_size(
       &dst_linesize,
-      handle->dst_nb_channels,
+      state->dst_nb_channels,
       dst_nb_samples,
-      handle->dst_sample_fmt,
+      state->dst_sample_fmt,
       1
     );
     if(*output_size < 0) {
-      return free_conversion_data("Error calculating output size", handle, NULL, NULL, dst_data);
+      return free_conversion_data("Error calculating output size", state, NULL, NULL, dst_data);
     }
   }
 
   *output = dst_data[0];
-  free_conversion_data(NULL, handle, NULL, NULL, dst_data);
+  free_conversion_data(NULL, state, NULL, NULL, dst_data);
 
   return NULL;
 }
