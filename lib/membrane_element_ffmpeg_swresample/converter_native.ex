@@ -19,7 +19,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
   """
   @spec create(integer, integer, integer, integer, integer, integer) ::
           {:ok, handle_t} | {:error, any}
-  defnif create(sink_format, sink_rate, sink_channels, src_format, src_rate, src_channels)
+  defnif create(input_format, input_rate, input_channels, src_format, src_rate, src_channels)
 
   @doc """
   Function that converts data according to a native handle.

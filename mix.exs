@@ -14,7 +14,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
       description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
       package: package(),
       name: "Membrane Element: FFmpeg SWResample",
-      source_url: @github_url,
+      output_url: @github_url,
       docs: docs(),
       deps: deps()
     ]
@@ -60,9 +60,11 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.18", only: :dev, runtime: false},
-      {:membrane_core, "~> 0.1"},
-      {:membrane_caps_audio_raw, "~> 0.1"},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      # {:membrane_core, "~> 0.1"},
+      {:membrane_core, github: "membraneframework/membrane-core"},
+      {:membrane_caps_audio_raw, github: "membraneframework/membrane-caps-audio-raw"},
+      {:bunch, github: "membraneframework/bunch"},
       {:membrane_common_c, "~> 0.1"},
       {:bundlex, "~> 0.1"},
       {:mockery, "~> 2.1", runtime: false}

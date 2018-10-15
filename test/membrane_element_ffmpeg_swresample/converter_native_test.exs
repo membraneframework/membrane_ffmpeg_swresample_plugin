@@ -10,19 +10,19 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     channels = [1, 2]
 
     inputs =
-      for sink_fmt <- [:s24le | formats],
-          sink_rate <- rates,
-          sink_channels <- channels,
-          src_fmt <- formats,
-          src_rate <- rates,
-          src_channels <- channels do
+      for input_fmt <- [:s24le | formats],
+          input_rate <- rates,
+          input_channels <- channels,
+          out_fmt <- formats,
+          out_rate <- rates,
+          out_channels <- channels do
         [
-          sink_fmt |> Raw.Format.serialize(),
-          sink_rate,
-          sink_channels,
-          src_fmt |> Raw.Format.serialize(),
-          src_rate,
-          src_channels
+          input_fmt |> Raw.Format.serialize(),
+          input_rate,
+          input_channels,
+          out_fmt |> Raw.Format.serialize(),
+          out_rate,
+          out_channels
         ]
       end
 
@@ -31,27 +31,27 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
 
   def serialize_input(input) do
     [
-      sink_fmt,
-      sink_rate,
-      sink_channels,
-      src_fmt,
-      src_rate,
-      src_channels
+      input_fmt,
+      input_rate,
+      input_channels,
+      out_fmt,
+      out_rate,
+      out_channels
     ] = input
 
     [
-      sink_fmt |> Raw.Format.serialize(),
-      sink_rate,
-      sink_channels,
-      src_fmt |> Raw.Format.serialize(),
-      src_rate,
-      src_channels
+      input_fmt |> Raw.Format.serialize(),
+      input_rate,
+      input_channels,
+      out_fmt |> Raw.Format.serialize(),
+      out_rate,
+      out_channels
     ]
   end
 
-  def mk_simple_converter(src_fmt, dst_fmt) do
+  def mk_simple_converter(out_fmt, dst_fmt) do
     @module.create(
-      src_fmt |> Raw.Format.serialize(),
+      out_fmt |> Raw.Format.serialize(),
       48_000,
       1,
       dst_fmt |> Raw.Format.serialize(),

@@ -33,14 +33,14 @@ defmodule Resampling.Pipeline do
     children = [
       file_src: %File.Source{location: "/tmp/some_samples.raw"},
       converter: %Converter{
-        sink_caps: %Raw{channels: 2, format: :s24le, sample_rate: 48_000},
-        source_caps: %Raw{channels: 2, format: :f32le, sample_rate: 44_100}
+        input_caps: %Raw{channels: 2, format: :s24le, sample_rate: 48_000},
+        output_caps: %Raw{channels: 2, format: :f32le, sample_rate: 44_100}
       },
       file_sink: %File.Sink{location: "/tmp/out.raw"},
     ]
     links = %{
-      {:file_src, :source} => {:converter, :sink},
-      {:converter, :source} => {:file_sink, :sink}
+      {:file_src, :output} => {:converter, :input},
+      {:converter, :output} => {:file_sink, :input}
     }
 
     {{:ok, %Spec{children: children, links: links}}, %{}}

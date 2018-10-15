@@ -7,31 +7,31 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   alias Membrane.Caps.Audio.Raw, as: Caps
   alias Membrane.Buffer
   alias Membrane.Caps.Matcher
-  use Membrane.Helper
-
-  @native Mockery.of(__MODULE__.Native)
+  import Mockery.Macro
+  use Bunch
 
   @supported_caps {Caps,
                    format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
-                   channels: Matcher.range(1, 2)}
+                   channels: Matcher.one_of([1, 2])}
 
-  def_known_source_pads source: {:always, :pull, @supported_caps}
+  def_output_pads output: [caps: @supported_caps]
 
-  def_known_sink_pads sink:
-                        {:always, {:pull, demand_in: :bytes},
-                         [@supported_caps, {Caps, format: :s24le, channels: range(1, 2)}]}
+  def_input_pads input: [
+                   demand_unit: :bytes,
+                   caps: [@supported_caps, {Caps, format: :s24le, channels: one_of([1, 2])}]
+                 ]
 
-  def_options sink_caps: [
+  def_options input_caps: [
                 type: :caps,
                 spec: Caps.t() | nil,
                 default: nil,
                 description: """
-                Audio caps for sink pad (input). If set to nil (default value),
-                caps are assumed to be received from :sink. If explicitly set to some
-                caps, they cannot be changed by caps received from :sink.
+                Audio caps for input pad. If set to nil (default value),
+                caps are assumed to be received from :input. If explicitly set to some
+                caps, they cannot be changed by caps received from :input.
                 """
               ],
-              source_caps: [
+              output_caps: [
                 type: :caps,
                 spec: Caps.t(),
                 description: """
@@ -62,62 +62,61 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_prepare(:stopped, %{sink_caps: nil} = state), do: {:ok, state}
+  def handle_stopped_to_prepared(_ctx, %{input_caps: nil} = state), do: {:ok, state}
 
-  def handle_prepare(:stopped, state) do
-    with {:ok, native} <- mk_native(state.sink_caps, state.source_caps) do
-      {{:ok, caps: {:source, state.source_caps}}, %{state | native: native}}
+  def handle_stopped_to_prepared(_ctx, state) do
+    with {:ok, native} <- mk_native(state.input_caps, state.output_caps) do
+      {{:ok, caps: {:output, state.output_caps}}, %{state | native: native}}
     else
       {:error, reason} -> {{:error, reason}, state}
     end
   end
 
-  def handle_prepare(playback, state), do: super(playback, state)
-
   @impl true
-  def handle_caps(:sink, caps, _, %{sink_caps: nil} = state) do
+  def handle_caps(:input, caps, _, %{input_caps: nil} = state) do
     do_handle_caps(caps, state)
   end
 
-  def handle_caps(:sink, caps, _, %{sink_caps: caps} = state) do
+  def handle_caps(:input, caps, _ctx, %{input_caps: caps} = state) do
     do_handle_caps(caps, state)
   end
 
-  def handle_caps(:sink, caps, _, %{sink_caps: stored_caps}) when caps != stored_caps do
+  def handle_caps(:input, caps, _ctx, %{input_caps: stored_caps}) when caps != stored_caps do
     raise """
     Received caps are different then defined in options. If you want to allow converter
-    to accept different sink caps dynamically, use `nil` as sink_caps.
+    to accept different input caps dynamically, use `nil` as input_caps.
     """
   end
 
   @impl true
-  def handle_demand(:source, _size, _, _, %{native: nil} = state), do: {:ok, state}
+  def handle_demand(:output, _size, _unit, _ctx, %{native: nil} = state), do: {:ok, state}
 
-  def handle_demand(:source, size, :bytes, _, state), do: {{:ok, demand: {:sink, size}}, state}
+  def handle_demand(:output, size, :bytes, _ctx, state),
+    do: {{:ok, demand: {:input, size}}, state}
 
-  def handle_demand(:source, n_buffers, :buffers, _, state) do
-    size = n_buffers * Caps.frames_to_bytes(state.frames_per_buffer, state.sink_caps)
-    {{:ok, demand: {:sink, size}}, state}
+  def handle_demand(:output, n_buffers, :buffers, _ctx, state) do
+    size = n_buffers * Caps.frames_to_bytes(state.frames_per_buffer, state.input_caps)
+    {{:ok, demand: {:input, size}}, state}
   end
 
   @impl true
-  def handle_process1(:sink, %Buffer{payload: payload}, %{caps: caps}, state)
+  def handle_process(:input, %Buffer{payload: payload}, %{caps: caps}, state)
       when caps != nil do
     process_payload(payload, caps, state)
   end
 
-  def handle_process1(:sink, %Buffer{payload: payload}, _, %{sink_caps: caps} = state) do
+  def handle_process(:input, %Buffer{payload: payload}, _ctx, %{input_caps: caps} = state) do
     process_payload(payload, caps, state)
   end
 
   @impl true
-  def handle_stop(state) do
+  def handle_prepared_to_stopped(_ctx, state) do
     {:ok, %{state | native: nil}}
   end
 
   defp do_handle_caps(caps, state) do
-    with {:ok, native} <- mk_native(caps, state.source_caps) do
-      {{:ok, caps: {:source, state.source_caps}, redemand: :source}, %{state | native: native}}
+    with {:ok, native} <- mk_native(caps, state.output_caps) do
+      {{:ok, caps: {:output, state.output_caps}, redemand: :output}, %{state | native: native}}
     else
       {:error, reason} -> {{:error, reason}, state}
     end
@@ -127,7 +126,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     frame_size = (caps |> Caps.sample_size()) * caps.channels
 
     with {:ok, {result, q}} when byte_size(result) > 0 <- convert(native, frame_size, payload, q) do
-      {{:ok, buffer: {:source, %Buffer{payload: result}}}, %{state | queue: q}}
+      {{:ok, buffer: {:output, %Buffer{payload: result}}}, %{state | queue: q}}
     else
       {:ok, {<<>>, q}} -> {:ok, %{state | queue: q}}
       {:error, reason} -> {:error, reason}
@@ -135,16 +134,16 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   defp mk_native(
-         %Caps{format: sink_format, sample_rate: sink_rate, channels: sink_channels},
-         %Caps{format: src_format, sample_rate: src_rate, channels: src_channels}
+         %Caps{format: input_format, sample_rate: input_rate, channels: input_channels},
+         %Caps{format: out_format, sample_rate: out_rate, channels: out_channels}
        ) do
-    @native.create(
-      sink_format |> Caps.Format.serialize(),
-      sink_rate,
-      sink_channels,
-      src_format |> Caps.Format.serialize(),
-      src_rate,
-      src_channels
+    native().create(
+      input_format |> Caps.Format.serialize(),
+      input_rate,
+      input_channels,
+      out_format |> Caps.Format.serialize(),
+      out_rate,
+      out_channels
     )
   end
 
@@ -154,7 +153,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       (queue <> payload)
       |> binary_int_rem(frame_size)
 
-    with {:ok, result} <- @native.convert(native, payload) do
+    with {:ok, result} <- native().convert(native, payload) do
       {:ok, {result, q}}
     end
   end
@@ -166,4 +165,6 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     <<b::binary-size(len), r::binary>> = b
     {b, r}
   end
+
+  defp native(), do: mockable(__MODULE__.Native)
 end
