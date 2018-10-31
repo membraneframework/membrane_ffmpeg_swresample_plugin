@@ -83,10 +83,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     end
   end
 
-  def handle_caps(:input, caps, _ctx, %{input_caps: stored_caps}) when caps != stored_caps do
+  def handle_caps(:input, caps, _ctx, %{input_caps: stored_caps}) do
     raise """
-    Received caps are different then defined in options. If you want to allow converter
-    to accept different input caps dynamically, use `nil` as input_caps.
+    Received caps #{inspect(caps)} are different then defined in options #{inspect(stored_caps)}.
+    If you want to allow converter to accept different input caps dynamically, use `nil` as input_caps.
     """
   end
 
@@ -108,21 +108,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_process(:input, %Buffer{payload: payload}, %{caps: caps}, state)
-      when caps != nil do
-    process_payload(payload, caps, state)
-  end
-
-  def handle_process(:input, %Buffer{payload: payload}, _ctx, %{input_caps: caps} = state) do
-    process_payload(payload, caps, state)
-  end
-
-  @impl true
-  def handle_prepared_to_stopped(_ctx, state) do
-    {:ok, %{state | native: nil}}
-  end
-
-  defp process_payload(payload, caps, %{native: native, queue: q} = state) do
+  def handle_process(:input, %Buffer{payload: payload}, ctx, %{native: native, queue: q} = state) do
+    caps = ctx.pads.input.caps || state.input_caps
     frame_size = (caps |> Caps.sample_size()) * caps.channels
 
     with {:ok, {result, q}} when byte_size(result) > 0 <- convert(native, frame_size, payload, q) do
