@@ -3,13 +3,14 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   Application.put_env(:bundlex, :membrane_element_ffmpeg_swresample, __ENV__)
 
   @github_url "https://github.com/membraneframework/membrane-element-ffmpeg-swresample"
+  @version "0.1.1"
 
   def project do
     [
       app: :membrane_element_ffmpeg_swresample,
       compilers: [:unifex, :bundlex] ++ Mix.compilers(),
-      version: "0.1.0",
-      elixir: "~> 1.6",
+      version: @version,
+      elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
       description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
       package: package(),
@@ -33,7 +34,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md"]
+      extras: ["README.md"],
+      source_ref: "v#{@version}"
     ]
   end
 
