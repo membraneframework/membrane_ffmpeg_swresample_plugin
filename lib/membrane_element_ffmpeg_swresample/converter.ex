@@ -7,6 +7,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   alias Membrane.Caps.Audio.Raw, as: Caps
   alias Membrane.Buffer
   alias Membrane.Caps.Matcher
+  alias __MODULE__.Native
   import Mockery.Macro
   use Bunch
 
@@ -73,12 +74,13 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_caps(:input, caps, _, %{input_caps: nil} = state) do
-    do_handle_caps(caps, state)
-  end
-
-  def handle_caps(:input, caps, _ctx, %{input_caps: caps} = state) do
-    do_handle_caps(caps, state)
+  def handle_caps(:input, caps, _ctx, %{input_caps: input_caps} = state)
+      when input_caps in [nil, caps] do
+    with {:ok, native} <- mk_native(caps, state.output_caps) do
+      {{:ok, caps: {:output, state.output_caps}, redemand: :output}, %{state | native: native}}
+    else
+      {:error, reason} -> {{:error, reason}, state}
+    end
   end
 
   def handle_caps(:input, caps, _ctx, %{input_caps: stored_caps}) when caps != stored_caps do
@@ -91,8 +93,14 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   @impl true
   def handle_demand(:output, _size, _unit, _ctx, %{native: nil} = state), do: {:ok, state}
 
-  def handle_demand(:output, size, :bytes, _ctx, state),
-    do: {{:ok, demand: {:input, size}}, state}
+  def handle_demand(:output, size, :bytes, ctx, %{input_caps: input_caps} = state) do
+    size =
+      size
+      |> Caps.bytes_to_time(ctx.pads.output.caps)
+      |> Caps.time_to_bytes(ctx.pads.input.caps || input_caps)
+
+    {{:ok, demand: {:input, size}}, state}
+  end
 
   def handle_demand(:output, n_buffers, :buffers, _ctx, state) do
     size = n_buffers * Caps.frames_to_bytes(state.frames_per_buffer, state.input_caps)
@@ -114,21 +122,13 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     {:ok, %{state | native: nil}}
   end
 
-  defp do_handle_caps(caps, state) do
-    with {:ok, native} <- mk_native(caps, state.output_caps) do
-      {{:ok, caps: {:output, state.output_caps}, redemand: :output}, %{state | native: native}}
-    else
-      {:error, reason} -> {{:error, reason}, state}
-    end
-  end
-
   defp process_payload(payload, caps, %{native: native, queue: q} = state) do
     frame_size = (caps |> Caps.sample_size()) * caps.channels
 
     with {:ok, {result, q}} when byte_size(result) > 0 <- convert(native, frame_size, payload, q) do
-      {{:ok, buffer: {:output, %Buffer{payload: result}}}, %{state | queue: q}}
+      {{:ok, buffer: {:output, %Buffer{payload: result}}, redemand: :output}, %{state | queue: q}}
     else
-      {:ok, {<<>>, q}} -> {:ok, %{state | queue: q}}
+      {:ok, {<<>>, q}} -> {{:ok, redemand: :output}, %{state | queue: q}}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -137,7 +137,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
          %Caps{format: input_format, sample_rate: input_rate, channels: input_channels},
          %Caps{format: out_format, sample_rate: out_rate, channels: out_channels}
        ) do
-    native().create(
+    mockable(Native).create(
       input_format |> Caps.Format.serialize(),
       input_rate,
       input_channels,
@@ -153,7 +153,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       (queue <> payload)
       |> binary_int_rem(frame_size)
 
-    with {:ok, result} <- native().convert(payload, native) do
+    with {:ok, result} <- mockable(Native).convert(payload, native) do
       {:ok, {result, q}}
     end
   end
@@ -165,6 +165,4 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
     <<b::binary-size(len), r::binary>> = b
     {b, r}
   end
-
-  defp native(), do: mockable(__MODULE__.Native)
 end

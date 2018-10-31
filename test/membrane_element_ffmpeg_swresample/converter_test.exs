@@ -35,10 +35,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
     Mockery.History.enable_history()
     mock(@native, [create: 6], {:ok, :mock_handle})
 
-    assert {{:ok, commands}, new_state} = @module.handle_caps(:input, @s16le_caps, nil, state)
-    assert length(commands) == 2
-    assert {:output, state.output_caps} == commands[:caps]
-    assert :output == commands[:redemand]
+    assert {{:ok, actions}, new_state} = @module.handle_caps(:input, @s16le_caps, nil, state)
+    assert length(actions) == 2
+    assert {:output, state.output_caps} == actions[:caps]
+    assert :output == actions[:redemand]
 
     assert %{native: :mock_handle} = new_state
 
@@ -70,10 +70,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
       Mockery.History.enable_history()
       mock(@native, [create: 6], {:ok, :mock_handle})
 
-      assert {{:ok, commands}, new_state} = @module.handle_stopped_to_prepared(:stopped, state)
+      assert {{:ok, actions}, new_state} = @module.handle_stopped_to_prepared(:stopped, state)
 
-      assert length(commands) == 1
-      assert {:output, state.output_caps} == commands[:caps]
+      assert length(actions) == 1
+      assert {:output, state.output_caps} == actions[:caps]
 
       assert %{native: :mock_handle} = new_state
 
@@ -133,24 +133,31 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
   end
 
   describe "handle_demand/4 should" do
-    test "pass the demand if converter have been created and demand was in bytes", %{
+    test "convert the demand if converter have been created and demand was in bytes", %{
       state: initial_state
     } do
       state = %{initial_state | native: :not_nil}
-      assert {{:ok, commands}, ^state} = @module.handle_demand(:output, 42, :bytes, nil, state)
-      assert commands == [demand: {:input, 42}]
+
+      assert {{:ok, [demand: {:input, 184}]}, state} ==
+               @module.handle_demand(
+                 :output,
+                 42,
+                 :bytes,
+                 %{pads: %{input: %{caps: @s16le_caps}, output: %{caps: @u8_caps}}},
+                 state
+               )
     end
 
     test "calculate and pass proper demand in bytes if converter have been created and demand was in buffers",
          %{state: initial_state} do
       state = %{initial_state | native: :not_nil, input_caps: @s16le_caps}
-      assert {{:ok, commands}, ^state} = @module.handle_demand(:output, 2, :buffers, nil, state)
+      assert {{:ok, actions}, ^state} = @module.handle_demand(:output, 2, :buffers, nil, state)
 
       buffers_size =
         2 * state.frames_per_buffer * Raw.sample_size(state.input_caps) *
           state.input_caps.channels
 
-      assert commands == [demand: {:input, buffers_size}]
+      assert actions == [demand: {:input, buffers_size}]
     end
 
     test "ignore the demands if converter haven't been created", %{state: state} do
@@ -165,7 +172,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
       buffer = %Membrane.Buffer{payload: payload}
       mock(@native, [convert: 2], {:error, :reason})
 
-      assert {:ok, new_state} =
+      assert {{:ok, redemand: :output}, new_state} =
                @module.handle_process(:input, buffer, %{caps: @s16le_caps}, state)
 
       assert new_state == %{state | queue: payload}
@@ -179,10 +186,10 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
       result = <<250, 0, 0, 0>>
       mock(@native, [convert: 2], {:ok, result})
 
-      assert {{:ok, commands}, new_state} =
+      assert {{:ok, actions}, new_state} =
                @module.handle_process(:input, buffer, %{caps: @s16le_caps}, state)
 
-      assert commands == [buffer: {:output, %Membrane.Buffer{payload: result}}]
+      assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}, redemand: :output]
       assert new_state == %{state | queue: <<0::2*8>>}
     end
   end

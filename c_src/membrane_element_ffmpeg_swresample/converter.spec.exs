@@ -1,4 +1,4 @@
-module(Membrane.Element.FFmpeg.SWResample.Converter.Native)
+module Membrane.Element.FFmpeg.SWResample.Converter.Native
 
 # Function creating native handler of converter.
 #
@@ -14,7 +14,7 @@ spec create(
        src_format :: unsigned,
        src_rate :: int,
        src_channels :: int
-     ) :: {:ok :: label, state}
+     ) :: {:ok :: label, state} | {:error :: label, reason :: atom}
 
 # Function that converts data according to a native handle.
 #
@@ -29,4 +29,4 @@ spec create(
 # WARNING: Converter won't flush anything until it has enough samples for conversion to happen,
 # so you won't be able to resample only a couple of samples. The actual threshold depends on
 # conversion parameters.
-spec convert(payload, state) :: {:ok :: label, payload}
+spec convert(payload, state) :: {:ok :: label, payload} | {:error :: label, reason :: atom}

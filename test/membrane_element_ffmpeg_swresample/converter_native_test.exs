@@ -74,21 +74,21 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     test "return proper error when format is not supported" do
       input = [:s32le, 44_100, 2, :s24le, 48_000, 2] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == {:args, :dst_format, 'Unsupported sample format'}
+      assert reason == :unsupported_dst_format
 
       input = [:s32be, 44_100, 2, :u8, 48_000, 2] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == {:args, :src_format, 'Unsupported sample format'}
+      assert reason == :unsupported_src_format
     end
 
     test "return proper error when number of channels is not supported" do
       input = [:s32le, 48_000, 4, :s16le, 48_000, 2] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == {:args, :src_channels, 'Unsupported number of channels'}
+      assert reason == :unsupported_src_no_channels
 
       input = [:s32le, 48_000, 2, :s16le, 48_000, 4] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == {:args, :dst_channels, 'Unsupported number of channels'}
+      assert reason == :unsupported_dst_no_channels
     end
   end
 
@@ -131,7 +131,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     end
 
     test "reduce samples size 8 times for s16le @ 48000 Hz -> u8 @ 24000 Hz conversion" do
-      for size <- [1234, 5121, 20_480, 384_000] do
+      for size <- [1234, 5120, 20_480, 384_000] do
         {:ok, handle} =
           @module.create(
             :s16le |> Raw.Format.serialize(),
