@@ -9,6 +9,7 @@ static int nb_channels_to_av_layout(int channels, int64_t *av_layout);
 UNIFEX_TERM create(UnifexEnv *env, unsigned int src_format, int src_rate,
                    int src_channels, unsigned int dst_format, int dst_rate,
                    int dst_channels) {
+  UNIFEX_TERM result;
   enum AVSampleFormat src_av_format, dst_av_format;
   char *err_reason;
   char from_s24le;
@@ -17,41 +18,40 @@ UNIFEX_TERM create(UnifexEnv *env, unsigned int src_format, int src_rate,
   if (membrane_sample_fmt_to_av_sample_fmt(src_format, 0, &from_s24le,
                                            &src_av_format)) {
     err_reason = "unsupported_src_format";
-    goto error;
+    goto create_exit;
   }
   if (membrane_sample_fmt_to_av_sample_fmt(dst_format, 1, NULL,
                                            &dst_av_format)) {
     err_reason = "unsupported_dst_format";
-    goto error;
+    goto create_exit;
   }
   int64_t src_layout, dst_layout;
   if (nb_channels_to_av_layout(src_channels, &src_layout)) {
-    err_reason = "unsupported_src_no_channels";
-    goto error;
+    err_reason = "unsupported_src_channels_no";
+    goto create_exit;
   }
   if (nb_channels_to_av_layout(dst_channels, &dst_layout)) {
-    err_reason = "unsupported_dst_no_channels";
-    goto error;
+    err_reason = "unsupported_dst_channels_no";
+    goto create_exit;
   }
 
   state = unifex_alloc_state(env);
   err_reason = lib_init(state, from_s24le, src_av_format, src_rate, src_layout,
                         dst_av_format, dst_rate, dst_layout);
   if (err_reason) {
-    goto error;
+    goto create_exit;
   }
 
-error:
+create_exit:
   if (err_reason) {
-    if (state) {
-      unifex_release_state(env, state);
-    }
-    return create_result_error(env, err_reason);
+    result = create_result_error(env, err_reason);
   } else {
-    UNIFEX_TERM res = create_result_ok(env, state);
-    unifex_release_state(env, state);
-    return res;
+    result = create_result_ok(env, state);
   }
+  if (state) {
+    unifex_release_state(env, state);
+  }
+  return result;
 }
 
 UNIFEX_TERM convert(UnifexEnv *env, UnifexPayload *in_payload,

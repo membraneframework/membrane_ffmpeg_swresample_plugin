@@ -84,11 +84,11 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     test "return proper error when number of channels is not supported" do
       input = [:s32le, 48_000, 4, :s16le, 48_000, 2] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == :unsupported_src_no_channels
+      assert reason == :unsupported_src_channels_no
 
       input = [:s32le, 48_000, 2, :s16le, 48_000, 4] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == :unsupported_dst_no_channels
+      assert reason == :unsupported_dst_channels_no
     end
   end
 

@@ -27,9 +27,9 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
                 spec: Caps.t() | nil,
                 default: nil,
                 description: """
-                Audio caps for input pad. If set to nil (default value),
-                caps are assumed to be received from :input. If explicitly set to some
-                caps, they cannot be changed by caps received from :input.
+                Caps for the input pad. If set to nil (default value),
+                caps are assumed to be received through the pad. If explicitly set to some
+                caps, they cannot be changed by caps received through the pad.
                 """
               ],
               output_caps: [
@@ -118,6 +118,11 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       {:ok, {<<>>, q}} -> {{:ok, redemand: :output}, %{state | queue: q}}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  @impl true
+  def handle_prepared_to_stopped(_ctx, state) do
+    {:ok, %{state | native: nil}}
   end
 
   defp mk_native(
