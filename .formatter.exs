@@ -4,5 +4,5 @@
     "*.exs",
     ".formatter.exs"
   ],
-  import_deps: [:membrane_core, :bundlex]
+  import_deps: [:membrane_core, :bundlex, :unifex]
 ]

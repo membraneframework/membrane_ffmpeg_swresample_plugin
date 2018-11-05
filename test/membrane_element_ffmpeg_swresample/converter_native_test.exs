@@ -10,19 +10,19 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     channels = [1, 2]
 
     inputs =
-      for sink_fmt <- [:s24le | formats],
-          sink_rate <- rates,
-          sink_channels <- channels,
-          src_fmt <- formats,
-          src_rate <- rates,
-          src_channels <- channels do
+      for input_fmt <- [:s24le | formats],
+          input_rate <- rates,
+          input_channels <- channels,
+          out_fmt <- formats,
+          out_rate <- rates,
+          out_channels <- channels do
         [
-          sink_fmt |> Raw.Format.serialize(),
-          sink_rate,
-          sink_channels,
-          src_fmt |> Raw.Format.serialize(),
-          src_rate,
-          src_channels
+          input_fmt |> Raw.Format.serialize(),
+          input_rate,
+          input_channels,
+          out_fmt |> Raw.Format.serialize(),
+          out_rate,
+          out_channels
         ]
       end
 
@@ -31,27 +31,27 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
 
   def serialize_input(input) do
     [
-      sink_fmt,
-      sink_rate,
-      sink_channels,
-      src_fmt,
-      src_rate,
-      src_channels
+      input_fmt,
+      input_rate,
+      input_channels,
+      out_fmt,
+      out_rate,
+      out_channels
     ] = input
 
     [
-      sink_fmt |> Raw.Format.serialize(),
-      sink_rate,
-      sink_channels,
-      src_fmt |> Raw.Format.serialize(),
-      src_rate,
-      src_channels
+      input_fmt |> Raw.Format.serialize(),
+      input_rate,
+      input_channels,
+      out_fmt |> Raw.Format.serialize(),
+      out_rate,
+      out_channels
     ]
   end
 
-  def mk_simple_converter(src_fmt, dst_fmt) do
+  def mk_simple_converter(out_fmt, dst_fmt) do
     @module.create(
-      src_fmt |> Raw.Format.serialize(),
+      out_fmt |> Raw.Format.serialize(),
       48_000,
       1,
       dst_fmt |> Raw.Format.serialize(),
@@ -74,36 +74,36 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     test "return proper error when format is not supported" do
       input = [:s32le, 44_100, 2, :s24le, 48_000, 2] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == {:args, :dst_format, 'Unsupported sample format'}
+      assert reason == :unsupported_dst_format
 
       input = [:s32be, 44_100, 2, :u8, 48_000, 2] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == {:args, :src_format, 'Unsupported sample format'}
+      assert reason == :unsupported_src_format
     end
 
     test "return proper error when number of channels is not supported" do
       input = [:s32le, 48_000, 4, :s16le, 48_000, 2] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == {:args, :src_channels, 'Unsupported number of channels'}
+      assert reason == :unsupported_src_channels_no
 
       input = [:s32le, 48_000, 2, :s16le, 48_000, 4] |> serialize_input()
       assert {:error, reason} = apply(@module, :create, input)
-      assert reason == {:args, :dst_channels, 'Unsupported number of channels'}
+      assert reason == :unsupported_dst_channels_no
     end
   end
 
   describe "convert/2 should" do
     test "return an empty binary for empty input" do
       {:ok, handle} = mk_simple_converter(:s16le, :u8)
-      assert @module.convert(handle, <<>>) == {:ok, <<>>}
+      assert @module.convert(<<>>, handle) == {:ok, <<>>}
     end
 
     test "convert s16le samples to u8" do
       {:ok, handle} = mk_simple_converter(:s16le, :u8)
       # convert 8 s16le samples
-      assert {:ok, <<result::binary>>} = @module.convert(handle, <<0::128>>)
+      assert {:ok, <<result::binary>>} = @module.convert(<<0::128>>, handle)
       # make sure nothing has been buffored
-      assert @module.convert(handle, <<>>) == {:ok, <<>>}
+      assert @module.convert(<<>>, handle) == {:ok, <<>>}
       assert byte_size(result) == 8
 
       result
@@ -117,9 +117,9 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     test "convert s24le samples to s16le" do
       {:ok, handle} = mk_simple_converter(:s24le, :s16le)
       # convert 8 s24le samples
-      assert {:ok, <<result::binary>>} = @module.convert(handle, <<0::192>>)
+      assert {:ok, <<result::binary>>} = @module.convert(<<0::192>>, handle)
       # make sure nothing has been buffored
-      assert @module.convert(handle, <<>>) == {:ok, <<>>}
+      assert @module.convert(<<>>, handle) == {:ok, <<>>}
       assert byte_size(result) == 16
 
       result
@@ -131,7 +131,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
     end
 
     test "reduce samples size 8 times for s16le @ 48000 Hz -> u8 @ 24000 Hz conversion" do
-      for size <- [1234, 5121, 20_480, 384_000] do
+      for size <- [1234, 5120, 20_480, 384_000] do
         {:ok, handle} =
           @module.create(
             :s16le |> Raw.Format.serialize(),
@@ -143,8 +143,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
           )
 
         input = for _ <- 1..size, do: <<:rand.uniform(255)>>, into: <<>>
-        assert {:ok, res_head} = @module.convert(handle, input)
-        assert {:ok, res_tail} = @module.convert(handle, <<>>)
+        assert {:ok, res_head} = @module.convert(input, handle)
+        assert {:ok, res_tail} = @module.convert(<<>>, handle)
         result = res_head <> res_tail
         assert round(byte_size(input) / 8) == byte_size(result)
       end
@@ -166,8 +166,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
         input = for _ <- 1..(2 * n * 480), do: <<:rand.uniform()::size(32)-float>>, into: <<>>
         assert byte_size(input) == 2 * n * 480 * 4
 
-        assert {:ok, res_head} = @module.convert(handle, input)
-        assert {:ok, res_tail} = @module.convert(handle, <<>>)
+        assert {:ok, res_head} = @module.convert(input, handle)
+        assert {:ok, res_tail} = @module.convert(<<>>, handle)
 
         result = res_head <> res_tail
         # 2 channels, n * 441 samples per channel, 16 bits (2 bytes) each
