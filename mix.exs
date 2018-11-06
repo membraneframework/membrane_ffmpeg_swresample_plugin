@@ -1,9 +1,8 @@
 defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   use Mix.Project
-  Application.put_env(:bundlex, :membrane_element_ffmpeg_swresample, __ENV__)
 
   @github_url "https://github.com/membraneframework/membrane-element-ffmpeg-swresample"
-  @version "0.1.1"
+  @version "0.2.0"
 
   def project do
     [
@@ -63,12 +62,11 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   defp deps do
     [
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
-      # {:membrane_core, "~> 0.1"},
-      {:membrane_core, github: "membraneframework/membrane-core"},
-      {:membrane_caps_audio_raw, github: "membraneframework/membrane-caps-audio-raw"},
-      {:bunch, github: "membraneframework/bunch", override: true},
-      {:unifex, github: "membraneframework/unifex"},
-      {:membrane_common_c, github: "membraneframework/membrane-common-c"},
+      {:membrane_core, "~> 0.2"},
+      {:membrane_caps_audio_raw, "~> 0.1"},
+      {:bunch, "~> 0.1.2"},
+      {:unifex, "~> 0.1"},
+      {:membrane_common_c, "~> 0.2"},
       {:bundlex, "~> 0.1"},
       {:mockery, "~> 2.1", runtime: false}
     ]
