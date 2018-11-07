@@ -62,3 +62,11 @@ It is possible to compile and use this element on Windows platform. That require
   * placing them in current directory (where you start `mix run`)
   * placing them in the directory where erlang executable is located
   * making them available system-wide by placing in system (`C:\Windows\System32`, `C:\Windows\SysWOW64`) or Windows (`C:\Windows`) directory
+
+## Copyright and License
+
+Copyright 2018, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane)
+
+[![Software Mansion](https://membraneframework.github.io/static/logo/swm_logo_readme.png)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane)
+
+Licensed under the [Apache License, Version 2.0](LICENSE)
