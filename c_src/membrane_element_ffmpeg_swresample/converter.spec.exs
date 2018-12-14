@@ -30,3 +30,5 @@ spec create(
 # so you won't be able to resample only a couple of samples. The actual threshold depends on
 # conversion parameters.
 spec convert(payload, state) :: {:ok :: label, payload} | {:error :: label, reason :: atom}
+
+dirty :cpu, [convert: 2]
