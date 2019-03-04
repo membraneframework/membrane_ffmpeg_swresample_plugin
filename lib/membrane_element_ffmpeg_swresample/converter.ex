@@ -9,7 +9,6 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   alias Membrane.Caps.Matcher
   alias __MODULE__.Native
   import Mockery.Macro
-  use Bunch
 
   @supported_caps {Caps,
                    format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
@@ -143,7 +142,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
        when byte_size(queue) + byte_size(payload) > 2 * frame_size do
     {payload, q} =
       (queue <> payload)
-      |> binary_int_rem(frame_size)
+      |> Bunch.Binary.split_int_part(frame_size)
 
     with {:ok, result} <- mockable(Native).convert(payload, native) do
       {:ok, {result, q}}
@@ -151,10 +150,4 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   defp convert(_native, _frame_size, payload, queue), do: {:ok, {<<>>, queue <> payload}}
-
-  defp binary_int_rem(b, d) when is_binary(b) and is_integer(d) do
-    len = b |> byte_size |> int_part(d)
-    <<b::binary-size(len), r::binary>> = b
-    {b, r}
-  end
 end

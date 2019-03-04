@@ -2,7 +2,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   use Mix.Project
 
   @github_url "https://github.com/membraneframework/membrane-element-ffmpeg-swresample"
-  @version "0.2.1"
+  @version "0.2.2"
 
   def project do
     [
@@ -64,7 +64,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:membrane_core, "~> 0.2"},
       {:membrane_caps_audio_raw, "~> 0.1"},
-      {:bunch, "~> 0.1.2"},
+      {:bunch, "~> 1.0"},
       {:unifex, "~> 0.1"},
       {:membrane_common_c, "~> 0.2"},
       {:bundlex, "~> 0.1"},
