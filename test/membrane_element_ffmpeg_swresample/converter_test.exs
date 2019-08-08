@@ -23,6 +23,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
     %{
       state: %{
         input_caps: nil,
+        input_caps_provided?: false,
         output_caps: @u8_caps,
         frames_per_buffer: 2048,
         native: nil,
@@ -66,7 +67,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
     end
 
     test "create native converter if caps are set", %{state: initial_state} do
-      state = %{initial_state | input_caps: @s16le_caps}
+      state = %{initial_state | input_caps: @s16le_caps, input_caps_provided?: true}
       Mockery.History.enable_history()
       mock(@native, [create: 6], {:ok, :mock_handle})
 
@@ -95,7 +96,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
     test "if native cannot be created returns an error with reason and untouched state", %{
       state: initial_state
     } do
-      state = %{initial_state | input_caps: @s16le_caps}
+      state = %{initial_state | input_caps: @s16le_caps, input_caps_provided?: true}
       mock(@native, [create: 6], {:error, :reason})
 
       assert @module.handle_stopped_to_prepared(:stopped, state) == {{:error, :reason}, state}
@@ -117,7 +118,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
     test "should raise when received caps don't match caps input_caps set in options", %{
       state: initial_state
     } do
-      state = %{initial_state | input_caps: @s16le_caps}
+      state = %{initial_state | input_caps: @s16le_caps, input_caps_provided?: true}
 
       assert_raise RuntimeError, fn ->
         @module.handle_caps(:input, @u8_caps, nil, state)
@@ -136,16 +137,11 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
     test "convert the demand if converter have been created and demand was in bytes", %{
       state: initial_state
     } do
-      state = %{initial_state | native: :not_nil}
+      state = %{initial_state | native: :not_nil, input_caps: @s16le_caps}
+      context = %{pads: %{output: %{caps: @u8_caps}}}
 
       assert {{:ok, [demand: {:input, 184}]}, state} ==
-               @module.handle_demand(
-                 :output,
-                 42,
-                 :bytes,
-                 %{pads: %{input: %{caps: @s16le_caps}, output: %{caps: @u8_caps}}},
-                 state
-               )
+               @module.handle_demand(:output, 42, :bytes, context, state)
     end
 
     test "calculate and pass proper demand in bytes if converter have been created and demand was in buffers",
@@ -167,28 +163,32 @@ defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
 
   describe "handle_process/4 should" do
     test "store payload in queue until there are at least 2 frames", %{state: initial_state} do
-      state = %{initial_state | native: :mock_handle}
+      state = %{initial_state | native: :mock_handle, input_caps: @s16le_caps}
       payload = <<0::3*8>>
       buffer = %Membrane.Buffer{payload: payload}
-      context = %{pads: %{input: %{caps: @s16le_caps}}}
       mock(@native, [convert: 2], {:error, :reason})
 
       assert {{:ok, redemand: :output}, new_state} =
-               @module.handle_process(:input, buffer, context, state)
+               @module.handle_process(:input, buffer, nil, state)
 
       assert new_state == %{state | queue: payload}
       refute_called(@native, :convert)
     end
 
     test "convert full frames and leave the remainder in queue", %{state: initial_state} do
-      state = %{initial_state | queue: <<250, 250, 0>>, native: :mock_handle}
+      state = %{
+        initial_state
+        | queue: <<250, 250, 0>>,
+          native: :mock_handle,
+          input_caps: @s16le_caps
+      }
+
       payload = <<0::7*8>>
       buffer = %Membrane.Buffer{payload: payload}
-      context = %{pads: %{input: %{caps: @s16le_caps}}}
       result = <<250, 0, 0, 0>>
       mock(@native, [convert: 2], {:ok, result})
 
-      assert {{:ok, actions}, new_state} = @module.handle_process(:input, buffer, context, state)
+      assert {{:ok, actions}, new_state} = @module.handle_process(:input, buffer, nil, state)
 
       assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}, redemand: :output]
       assert new_state == %{state | queue: <<0::2*8>>}

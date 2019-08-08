@@ -54,14 +54,15 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
       |> Map.from_struct()
       |> Map.merge(%{
         native: nil,
-        queue: <<>>
+        queue: <<>>,
+        input_caps_provided?: options.input_caps != nil
       })
 
     {:ok, state}
   end
 
   @impl true
-  def handle_stopped_to_prepared(_ctx, %{input_caps: nil} = state), do: {:ok, state}
+  def handle_stopped_to_prepared(_ctx, %{input_caps_provided?: false} = state), do: {:ok, state}
 
   def handle_stopped_to_prepared(_ctx, state) do
     with {:ok, native} <- mk_native(state.input_caps, state.output_caps) do
@@ -72,16 +73,8 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_caps(:input, caps, _ctx, %{input_caps: input_caps} = state)
-      when input_caps in [nil, caps] do
-    with {:ok, native} <- mk_native(caps, state.output_caps) do
-      {{:ok, caps: {:output, state.output_caps}, redemand: :output}, %{state | native: native}}
-    else
-      {:error, reason} -> {{:error, reason}, state}
-    end
-  end
-
-  def handle_caps(:input, caps, _ctx, %{input_caps: stored_caps}) do
+  def handle_caps(:input, caps, _ctx, %{input_caps_provided?: true, input_caps: stored_caps})
+      when stored_caps != caps do
     raise """
     Received caps #{inspect(caps)} are different then defined in options #{inspect(stored_caps)}.
     If you want to allow converter to accept different input caps dynamically, use `nil` as input_caps.
@@ -89,13 +82,24 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   @impl true
+  def handle_caps(:input, caps, _ctx, state) do
+    with {:ok, native} <- mk_native(caps, state.output_caps) do
+      state = %{state | native: native, input_caps: caps}
+      {{:ok, caps: {:output, state.output_caps}, redemand: :output}, state}
+    else
+      {:error, reason} -> {{:error, reason}, state}
+    end
+  end
+
+  @impl true
   def handle_demand(:output, _size, _unit, _ctx, %{native: nil} = state), do: {:ok, state}
 
-  def handle_demand(:output, size, :bytes, ctx, %{input_caps: input_caps} = state) do
+  @impl true
+  def handle_demand(:output, size, :bytes, ctx, state) do
     size =
       size
       |> Caps.bytes_to_time(ctx.pads.output.caps)
-      |> Caps.time_to_bytes(ctx.pads.input.caps || input_caps)
+      |> Caps.time_to_bytes(state.input_caps)
 
     {{:ok, demand: {:input, size}}, state}
   end
@@ -106,15 +110,16 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_process(:input, %Buffer{payload: payload}, ctx, %{native: native, queue: q} = state) do
-    caps = ctx.pads.input.caps || state.input_caps
-    frame_size = (caps |> Caps.sample_size()) * caps.channels
+  def handle_process(:input, %Buffer{payload: payload}, _ctx, state) do
+    conversion_result =
+      convert(state.native, Caps.frame_size(state.input_caps), payload, state.queue)
 
-    with {:ok, {result, q}} when byte_size(result) > 0 <- convert(native, frame_size, payload, q) do
-      {{:ok, buffer: {:output, %Buffer{payload: result}}, redemand: :output}, %{state | queue: q}}
+    with {:ok, {result, queue}} when byte_size(result) > 0 <- conversion_result do
+      {{:ok, buffer: {:output, %Buffer{payload: result}}, redemand: :output},
+       %{state | queue: queue}}
     else
-      {:ok, {<<>>, q}} -> {{:ok, redemand: :output}, %{state | queue: q}}
-      {:error, reason} -> {:error, reason}
+      {:ok, {<<>>, queue}} -> {{:ok, redemand: :output}, %{state | queue: queue}}
+      {:error, reason} -> {{:error, reason}, state}
     end
   end
 

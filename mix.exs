@@ -63,7 +63,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
     [
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:membrane_core, "~> 0.3.0"},
-      {:membrane_caps_audio_raw, "~> 0.1.0"},
+      {:membrane_caps_audio_raw, "~> 0.1.7"},
       {:bunch, "~> 1.0"},
       {:unifex, "~> 0.2.0"},
       {:membrane_common_c, "~> 0.2.0"},
