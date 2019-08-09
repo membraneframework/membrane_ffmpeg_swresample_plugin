@@ -1,6 +1,6 @@
 # Membrane.Element.FFmpeg.SWResample
 
-[![Build Status](https://travis-ci.com/membraneframework/membrane-element-ffmpeg-swresample.svg?branch=master)](https://travis-ci.com/membraneframework/membrane-element-ffmpeg-swresample)
+[![CircleCI](https://circleci.com/gh/membraneframework/membrane-element-ffmpeg-swresample.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane-element-ffmpeg-swresample)
 
 Element of [Membrane Multimedia Framework](https://membraneframework.org) performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
 
