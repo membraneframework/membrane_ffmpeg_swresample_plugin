@@ -1,6 +1,6 @@
 # Membrane.Element.FFmpeg.SWResample
 
-[![Build Status](https://travis-ci.com/membraneframework/membrane-element-ffmpeg-swresample.svg?branch=master)](https://travis-ci.com/membraneframework/membrane-element-ffmpeg-swresample)
+[![CircleCI](https://circleci.com/gh/membraneframework/membrane-element-ffmpeg-swresample.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane-element-ffmpeg-swresample)
 
 Element of [Membrane Multimedia Framework](https://membraneframework.org) performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
 
@@ -11,7 +11,7 @@ Documentation is available at [HexDocs](https://hexdocs.pm/membrane_element_port
 Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
 
 ```elixir
-{:membrane_element_ffmpeg_swresample, "~> 0.1"}
+{:membrane_element_ffmpeg_swresample, "~> 0.2"}
 ```
 
 You also need to have [FFmpeg](https://www.ffmpeg.org/) library installed.

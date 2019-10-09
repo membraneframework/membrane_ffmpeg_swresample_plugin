@@ -3,7 +3,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Converter do
   This element performs audio conversion/resampling/channel mixing, using SWResample
   module of FFmpeg library.
   """
-  use Membrane.Element.Base.Filter
+  use Membrane.Filter
   alias Membrane.Caps.Audio.Raw, as: Caps
   alias Membrane.Buffer
   alias Membrane.Caps.Matcher
