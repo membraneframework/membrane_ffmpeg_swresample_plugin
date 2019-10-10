@@ -2,7 +2,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   use Mix.Project
 
   @github_url "https://github.com/membraneframework/membrane-element-ffmpeg-swresample"
-  @version "0.2.4"
+  @version "0.2.5"
 
   def project do
     [
