@@ -11,7 +11,7 @@ Documentation is available at [HexDocs](https://hexdocs.pm/membrane_element_port
 Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
 
 ```elixir
-{:membrane_element_ffmpeg_swresample, "~> 0.2"}
+{:membrane_element_ffmpeg_swresample, "~> 0.3.0"}
 ```
 
 You also need to have [FFmpeg](https://www.ffmpeg.org/) library installed.
