@@ -9,7 +9,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
       app: :membrane_ffmpeg_swresample_plugin,
       compilers: [:unifex, :bundlex] ++ Mix.compilers(),
       version: @version,
-      elixir: "~> 1.7",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       description:
         "Plugin performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.",
@@ -62,13 +62,13 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.23", only: :dev, runtime: false},
       {:membrane_core, "~> 0.5.0"},
       {:membrane_caps_audio_raw, "~> 0.2.0"},
-      {:bunch, "~> 1.0"},
-      {:unifex, "~> 0.2.0"},
-      {:membrane_common_c, "~> 0.3.0"},
-      {:bundlex, "~> 0.2.7"},
+      {:bunch, "~> 1.3.0"},
+      {:unifex, "~> 0.3.2"},
+      {:membrane_common_c, "~> 0.4.0"},
+      {:bundlex, "~> 0.4.0"},
       {:mockery, "~> 2.1", runtime: false}
     ]
   end

@@ -6,6 +6,4 @@
 
 #include "converter_lib.h"
 
-typedef ConverterState UnifexNifState;
-
 #include "_generated/converter.h"
