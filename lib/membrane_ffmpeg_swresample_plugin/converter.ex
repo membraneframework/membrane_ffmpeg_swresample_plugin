@@ -1,4 +1,4 @@
-defmodule Membrane.Element.FFmpeg.SWResample.Converter do
+defmodule Membrane.FFmpeg.SWResample.Converter do
   @moduledoc """
   This element performs audio conversion/resampling/channel mixing, using SWResample
   module of FFmpeg library.

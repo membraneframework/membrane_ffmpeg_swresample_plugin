@@ -1,8 +1,8 @@
-defmodule Membrane.Element.FFmpeg.SWResample.Converter.NativeTest do
+defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
   use ExUnit.Case, async: true
   alias Membrane.Caps.Audio.Raw
 
-  @module Membrane.Element.FFmpeg.SWResample.Converter.Native
+  @module Membrane.FFmpeg.SWResample.Converter.Native
 
   def valid_inputs(_) do
     formats = [:u8, :s16le, :s32le, :f32le, :f64le]

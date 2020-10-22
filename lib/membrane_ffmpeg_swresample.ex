@@ -1,4 +1,4 @@
-defmodule Membrane.Element.FFmpeg.SWResample do
+defmodule Membrane.FFmpeg.SWResample do
   @moduledoc false
   use Application
 
@@ -7,7 +7,7 @@ defmodule Membrane.Element.FFmpeg.SWResample do
 
     children = []
 
-    opts = [strategy: :one_for_one, name: Membrane.Element.FFmpeg.SWResample]
+    opts = [strategy: :one_for_one, name: Membrane.FFmpeg.SWResample]
     Supervisor.start_link(children, opts)
   end
 end

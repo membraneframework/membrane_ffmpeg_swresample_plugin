@@ -1,4 +1,4 @@
-defmodule Membrane.Element.FFmpeg.SWResample.Converter.Native do
+defmodule Membrane.FFmpeg.SWResample.Converter.Native do
   @moduledoc """
   This module provides nativly implemented converter utilizing library swresample
   """

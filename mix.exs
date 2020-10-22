@@ -1,19 +1,20 @@
-defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
+defmodule Membrane.FFmpeg.SWResample.Mixfile do
   use Mix.Project
 
-  @github_url "https://github.com/membraneframework/membrane-element-ffmpeg-swresample"
+  @github_url "https://github.com/membraneframework/membrane_ffmpeg_swresample_plugin"
   @version "0.3.0"
 
   def project do
     [
-      app: :membrane_element_ffmpeg_swresample,
+      app: :membrane_ffmpeg_swresample_plugin,
       compilers: [:unifex, :bundlex] ++ Mix.compilers(),
       version: @version,
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
-      description: "Membrane Multimedia Framework (FFmpeg SWResample Element)",
+      description:
+        "Plugin performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.",
       package: package(),
-      name: "Membrane Element: FFmpeg SWResample",
+      name: "Membrane FFmpeg SWResample plugin",
       output_url: @github_url,
       docs: docs(),
       deps: deps()
@@ -23,7 +24,7 @@ defmodule Membrane.Element.FFmpeg.SWResample.Mixfile do
   def application do
     [
       extra_applications: [],
-      mod: {Membrane.Element.FFmpeg.SWResample, []}
+      mod: {Membrane.FFmpeg.SWResample, []}
     ]
   end
 
