@@ -1,17 +1,19 @@
-# Membrane.Element.FFmpeg.SWResample
+# Membrane FFmpeg SWResample plugin
 
-[![CircleCI](https://circleci.com/gh/membraneframework/membrane-element-ffmpeg-swresample.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane-element-ffmpeg-swresample)
+[![Hex.pm](https://img.shields.io/hexpm/v/membrane_ffmpeg_swresample_plugin.svg)](https://hex.pm/packages/membrane_ffmpeg_swresample_plugin)
+[![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/membrane_ffmpeg_swresample_plugin/)
+[![CircleCI](https://circleci.com/gh/membraneframework/membrane_ffmpeg_swresample_plugin.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane_ffmpeg_swresample_plugin)
 
-Element of [Membrane Multimedia Framework](https://membraneframework.org) performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
+Plugin performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
 
-Documentation is available at [HexDocs](https://hexdocs.pm/membrane_element_portaudio/)
+It is a part of [Membrane Multimedia Framework](https://membraneframework.org).
 
 ## Installation
 
 Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
 
 ```elixir
-{:membrane_element_ffmpeg_swresample, "~> 0.3.0"}
+{:membrane_ffmpeg_swresample_plugin, "~> 0.3.0"}
 ```
 
 You also need to have [FFmpeg](https://www.ffmpeg.org/) library installed.
@@ -24,7 +26,7 @@ defmodule Resampling.Pipeline do
   use Membrane.Pipeline
   alias Pipeline.Spec
   alias Membrane.Element.File
-  alias Membrane.Element.FFmpeg.SWResample.Converter
+  alias Membrane.FFmpeg.SWResample.Converter
   alias Membrane.Caps.Audio.Raw
 
   @doc false
@@ -50,7 +52,7 @@ end
 
 ## Using on Windows
 
-It is possible to compile and use this element on Windows platform. That requires:
+It is possible to compile and use this plugin on Windows platform. That requires:
 
 * Git-LFS to clone binaries placed in `ext/windows` directory
 * Visual C++ Build Tools with Windows SDK (tested on build tools 2015 and SDK for Windows 10)

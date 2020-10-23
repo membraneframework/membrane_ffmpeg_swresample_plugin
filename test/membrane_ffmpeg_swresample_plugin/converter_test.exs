@@ -1,8 +1,8 @@
-defmodule Membrane.Element.FFmpeg.SWResample.ConverterTest do
+defmodule Membrane.FFmpeg.SWResample.ConverterTest do
   use ExUnit.Case, async: true
   use Mockery
   alias Membrane.Caps.Audio.Raw
-  alias Membrane.Element.FFmpeg.SWResample.Converter
+  alias Membrane.FFmpeg.SWResample.Converter
 
   @module Converter
   @native Converter.Native

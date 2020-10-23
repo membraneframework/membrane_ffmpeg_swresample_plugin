@@ -1,4 +1,4 @@
-module Membrane.Element.FFmpeg.SWResample.Converter.Native
+module Membrane.FFmpeg.SWResample.Converter.Native
 
 # Function creating native handler of converter.
 #
