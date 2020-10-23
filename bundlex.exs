@@ -3,13 +3,19 @@ defmodule Membrane.FFmpeg.SWResample.BundlexProject do
 
   def project do
     [
-      nifs: [
-        converter:
-          [
-            sources: ["converter.c", "converter_lib.c", "_generated/converter.c"],
-            deps: [membrane_common_c: :membrane, unifex: :unifex]
-          ] ++ platform_specific(Bundlex.platform())
-      ]
+      natives: natives()
+    ]
+  end
+
+  defp natives() do
+    [
+      converter:
+        [
+          interface: :nif,
+          sources: ["converter.c", "converter_lib.c"],
+          deps: [membrane_common_c: :membrane, unifex: :unifex],
+          preprocessor: Unifex
+        ] ++ platform_specific(Bundlex.platform())
     ]
   end
 

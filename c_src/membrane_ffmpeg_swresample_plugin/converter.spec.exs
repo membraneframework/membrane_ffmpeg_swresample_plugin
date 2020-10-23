@@ -1,5 +1,7 @@
 module Membrane.FFmpeg.SWResample.Converter.Native
 
+state_type "ConverterState"
+
 # Function creating native handler of converter.
 #
 # Expects sample format (encoded as integer, using
