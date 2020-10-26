@@ -13,7 +13,7 @@ It is a part of [Membrane Multimedia Framework](https://membraneframework.org).
 Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
 
 ```elixir
-{:membrane_ffmpeg_swresample_plugin, "~> 0.3.0"}
+{:membrane_ffmpeg_swresample_plugin, "~> 0.4.0"}
 ```
 
 You also need to have [FFmpeg](https://www.ffmpeg.org/) library installed.
@@ -33,17 +33,19 @@ defmodule Resampling.Pipeline do
   @impl true
   def handle_init(_) do
     children = [
-      file_src: %File.Source{location: "/tmp/some_samples.raw"},
+      file_src: %File.Source{location: "/tmp/input.raw"},
       converter: %Converter{
         input_caps: %Raw{channels: 2, format: :s24le, sample_rate: 48_000},
         output_caps: %Raw{channels: 2, format: :f32le, sample_rate: 44_100}
       },
-      file_sink: %File.Sink{location: "/tmp/out.raw"},
+      file_sink: %File.Sink{location: "/tmp/output.raw"},
     ]
-    links = %{
-      {:file_src, :output} => {:converter, :input},
-      {:converter, :output} => {:file_sink, :input}
-    }
+
+    links = [
+      link(:file_src) 
+      |> to(:converter)
+      |> to(:file_sink)
+    ]
 
     {{:ok, %Spec{children: children, links: links}}, %{}}
   end
