@@ -24,7 +24,7 @@ For usage on windows, see `Using on Windows` section below.
 ```elixir
 defmodule Resampling.Pipeline do
   use Membrane.Pipeline
-  alias Pipeline.Spec
+
   alias Membrane.Element.File
   alias Membrane.FFmpeg.SWResample.Converter
   alias Membrane.Caps.Audio.Raw
@@ -42,12 +42,12 @@ defmodule Resampling.Pipeline do
     ]
 
     links = [
-      link(:file_src) 
+      link(:file_src)
       |> to(:converter)
       |> to(:file_sink)
     ]
 
-    {{:ok, %Spec{children: children, links: links}}, %{}}
+    {{:ok, spec: %ParentSpec{children: children, links: links}}, %{}}
   end
 end
 ```
