@@ -40,6 +40,6 @@ defmodule Membrane.FFmpeg.SWResample.BundlexProject do
   end
 
   defp platform_specific(_) do
-    [libs: ["avutil", "swresample"]]
+    [pkg_configs: ["libavutil", "libswresample"]]
   end
 end
