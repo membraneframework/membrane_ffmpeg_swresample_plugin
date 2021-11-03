@@ -68,12 +68,14 @@ UNIFEX_TERM convert(UnifexEnv *env, UnifexPayload *in_payload,
   if (conversion_error) {
     return convert_result_error(env, conversion_error);
   }
-  UnifexPayload *out_payload =
-      unifex_payload_alloc(env, in_payload->type, output_size);
-  memcpy(out_payload->data, output, output_size);
+  UnifexPayload out_payload;
+  unifex_payload_alloc(env, in_payload->type, output_size, &out_payload);
+  memcpy(out_payload.data, output, output_size);
   lib_free_output(&output);
 
-  return convert_result_ok(env, out_payload);
+  UNIFEX_TERM res = convert_result_ok(env, &out_payload);
+  unifex_payload_release(&out_payload);
+  return res;
 }
 
 void handle_destroy_state(UnifexEnv *env, ConverterState *state) {
