@@ -1,4 +1,5 @@
 defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
+  @moduledoc false
   use ExUnit.Case, async: true
   alias Membrane.RawAudio
 
