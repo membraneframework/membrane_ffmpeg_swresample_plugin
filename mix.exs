@@ -66,7 +66,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
   defp deps do
     [
       {:membrane_core, "~> 0.9.0"},
-      {:membrane_caps_audio_raw, "~> 0.6.0"},
+      {:membrane_raw_audio_format, "~> 0.8.0"},
       {:bunch, "~> 1.3.0"},
       {:unifex, "~> 0.7.0"},
       {:membrane_common_c, "~> 0.11.0"},
