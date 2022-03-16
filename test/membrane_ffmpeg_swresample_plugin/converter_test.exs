@@ -19,7 +19,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
     sample_rate: 44_100
   }
 
-  def initial_state(_) do
+  defp initial_state(_ctx) do
     %{
       state: %{
         input_caps: nil,
@@ -32,7 +32,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
     }
   end
 
-  def test_handle_caps(state) do
+  defp test_handle_caps(state) do
     Mockery.History.enable_history()
     mock(@native, [create: 6], {:ok, :mock_handle})
 

@@ -2,17 +2,19 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
   use Mix.Project
 
   @github_url "https://github.com/membraneframework/membrane_ffmpeg_swresample_plugin"
-  @version "0.10.0"
+  @version "0.11.0"
 
   def project do
     [
       app: :membrane_ffmpeg_swresample_plugin,
       compilers: [:unifex, :bundlex] ++ Mix.compilers(),
       version: @version,
-      elixir: "~> 1.10",
+      elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
-      description:
-        "Plugin performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.",
+      description: """
+      Plugin performing audio conversion, resampling and channel mixing.
+      Uses SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
+      """,
       package: package(),
       name: "Membrane FFmpeg SWResample plugin",
       output_url: @github_url,
@@ -23,8 +25,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
 
   def application do
     [
-      extra_applications: [],
-      mod: {Membrane.FFmpeg.SWResample, []}
+      extra_applications: []
     ]
   end
 
@@ -35,14 +36,16 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
     [
       main: "readme",
       extras: ["README.md", "LICENSE"],
-      source_ref: "v#{@version}"
+      formatters: ["html"],
+      source_ref: "v#{@version}",
+      nest_modules_by_prefix: [Membrane.FFmpeg.SWResample]
     ]
   end
 
   defp package do
     [
       maintainers: ["Membrane Team"],
-      licenses: ["Apache 2.0"],
+      licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => @github_url,
         "Membrane Framework Homepage" => "https://membraneframework.org"
@@ -62,14 +65,18 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.23", only: :dev, runtime: false},
-      {:membrane_core, "~> 0.8.0"},
-      {:membrane_caps_audio_raw, "~> 0.5.0"},
+      {:membrane_core, "~> 0.9.0"},
+      {:membrane_caps_audio_raw, "~> 0.6.0"},
       {:bunch, "~> 1.3.0"},
       {:unifex, "~> 0.7.0"},
-      {:membrane_common_c, "~> 0.10.0"},
+      {:membrane_common_c, "~> 0.11.0"},
       {:bundlex, "~> 0.5.0"},
-      {:mockery, "~> 2.1", runtime: false}
+      # Testing
+      {:mockery, "~> 2.1", runtime: false},
+      # Development
+      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
+      {:credo, "~> 1.6", only: :dev, runtime: false}
     ]
   end
 end

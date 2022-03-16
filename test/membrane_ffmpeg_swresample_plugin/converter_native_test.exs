@@ -4,7 +4,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
 
   @module Membrane.FFmpeg.SWResample.Converter.Native
 
-  def valid_inputs(_) do
+  defp valid_inputs(_ctx) do
     formats = [:u8, :s16le, :s32le, :f32le, :f64le]
     rates = [44_100, 48_000]
     channels = [1, 2]
@@ -29,7 +29,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
     [valid_inputs: inputs]
   end
 
-  def serialize_input(input) do
+  defp serialize_input(input) do
     [
       input_fmt,
       input_rate,
@@ -49,7 +49,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
     ]
   end
 
-  def mk_simple_converter(out_fmt, dst_fmt) do
+  defp mk_simple_converter(out_fmt, dst_fmt) do
     @module.create(
       out_fmt |> Raw.Format.serialize(),
       48_000,
@@ -142,7 +142,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
             1
           )
 
-        input = for _ <- 1..size, do: <<:rand.uniform(255)>>, into: <<>>
+        input = for _i <- 1..size, do: <<:rand.uniform(255)>>, into: <<>>
         assert {:ok, res_head} = @module.convert(input, handle)
         assert {:ok, res_tail} = @module.convert(<<>>, handle)
         result = res_head <> res_tail
@@ -163,7 +163,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
           )
 
         # 2 channels, n * 480 samples per channel, 32 bits (4 bytes) each
-        input = for _ <- 1..(2 * n * 480), do: <<:rand.uniform()::size(32)-float>>, into: <<>>
+        input = for _i <- 1..(2 * n * 480), do: <<:rand.uniform()::size(32)-float>>, into: <<>>
         assert byte_size(input) == 2 * n * 480 * 4
 
         assert {:ok, res_head} = @module.convert(input, handle)

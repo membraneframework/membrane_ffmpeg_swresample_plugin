@@ -3,14 +3,17 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   This element performs audio conversion/resampling/channel mixing, using SWResample
   module of FFmpeg library.
   """
+
   use Membrane.Filter
-  alias Membrane.Caps.Audio.Raw, as: Caps
+
+  import Mockery.Macro
+
+  alias Membrane.Caps.Audio.Raw, as: RawAudio
   alias Membrane.Buffer
   alias Membrane.Caps.Matcher
   alias __MODULE__.Native
-  import Mockery.Macro
 
-  @supported_caps {Caps,
+  @supported_caps {RawAudio,
                    format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
                    channels: Matcher.one_of([1, 2])}
 
@@ -18,11 +21,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
   def_input_pad :input,
     demand_unit: :bytes,
-    caps: [@supported_caps, {Caps, format: :s24le, channels: one_of([1, 2])}]
+    caps: [@supported_caps, {RawAudio, format: :s24le, channels: one_of([1, 2])}]
 
   def_options input_caps: [
                 type: :caps,
-                spec: Caps.t() | nil,
+                spec: RawAudio.t() | nil,
                 default: nil,
                 description: """
                 Caps for the input pad. If set to nil (default value),
@@ -32,7 +35,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
               ],
               output_caps: [
                 type: :caps,
-                spec: Caps.t(),
+                spec: RawAudio.t(),
                 description: """
                 Audio caps for souce pad (output)
                 """
@@ -98,21 +101,21 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   def handle_demand(:output, size, :bytes, ctx, state) do
     size =
       size
-      |> Caps.bytes_to_time(ctx.pads.output.caps)
-      |> Caps.time_to_bytes(state.input_caps)
+      |> RawAudio.bytes_to_time(ctx.pads.output.caps)
+      |> RawAudio.time_to_bytes(state.input_caps)
 
     {{:ok, demand: {:input, size}}, state}
   end
 
   def handle_demand(:output, n_buffers, :buffers, _ctx, state) do
-    size = n_buffers * Caps.frames_to_bytes(state.frames_per_buffer, state.input_caps)
+    size = n_buffers * RawAudio.frames_to_bytes(state.frames_per_buffer, state.input_caps)
     {{:ok, demand: {:input, size}}, state}
   end
 
   @impl true
   def handle_process(:input, %Buffer{payload: payload}, _ctx, state) do
     conversion_result =
-      convert(state.native, Caps.frame_size(state.input_caps), payload, state.queue)
+      convert(state.native, RawAudio.frame_size(state.input_caps), payload, state.queue)
 
     with {:ok, {result, queue}} when byte_size(result) > 0 <- conversion_result do
       {{:ok, buffer: {:output, %Buffer{payload: result}}, redemand: :output},
@@ -129,14 +132,14 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   defp mk_native(
-         %Caps{format: input_format, sample_rate: input_rate, channels: input_channels},
-         %Caps{format: out_format, sample_rate: out_rate, channels: out_channels}
+         %RawAudio{format: input_format, sample_rate: input_rate, channels: input_channels},
+         %RawAudio{format: out_format, sample_rate: out_rate, channels: out_channels}
        ) do
     mockable(Native).create(
-      input_format |> Caps.Format.serialize(),
+      input_format |> RawAudio.Format.serialize(),
       input_rate,
       input_channels,
-      out_format |> Caps.Format.serialize(),
+      out_format |> RawAudio.Format.serialize(),
       out_rate,
       out_channels
     )
