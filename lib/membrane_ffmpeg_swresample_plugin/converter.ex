@@ -7,8 +7,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   use Membrane.Filter
   import Mockery.Macro
 
-  alias Membrane.RawAudio
-  alias Membrane.Buffer
+  alias Membrane.{RawAudio, Buffer}
   alias Membrane.Caps.Matcher
   alias __MODULE__.Native
 
@@ -36,7 +35,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
                 type: :caps,
                 spec: RawAudio.t(),
                 description: """
-                Audio caps for souce pad (output)
+                Audio caps for source pad (output)
                 """
               ],
               frames_per_buffer: [
