@@ -1,21 +1,21 @@
 defmodule Membrane.FFmpeg.SWResample.ConverterTest do
   use ExUnit.Case, async: true
   use Mockery
-  alias Membrane.Caps.Audio.Raw
+  alias Membrane.RawAudio
   alias Membrane.FFmpeg.SWResample.Converter
 
   @module Converter
   @native Converter.Native
 
-  @s16le_caps %Raw{
+  @s16le_caps %RawAudio{
     channels: 2,
-    format: :s16le,
+    sample_format: :s16le,
     sample_rate: 48_000
   }
 
-  @u8_caps %Raw{
+  @u8_caps %RawAudio{
     channels: 1,
-    format: :u8,
+    sample_format: :u8,
     sample_rate: 44_100
   }
 
@@ -43,10 +43,10 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
     assert %{native: :mock_handle} = new_state
 
-    input_fmt = @s16le_caps.format |> Raw.Format.serialize()
+    input_fmt = @s16le_caps.sample_format |> RawAudio.SampleFormat.serialize()
     input_rate = @s16le_caps.sample_rate
     input_channel = @s16le_caps.channels
-    out_fmt = @u8_caps.format |> Raw.Format.serialize()
+    out_fmt = @u8_caps.sample_format |> RawAudio.SampleFormat.serialize()
     out_rate = @u8_caps.sample_rate
     out_channel = @u8_caps.channels
 
@@ -78,10 +78,10 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
       assert %{native: :mock_handle} = new_state
 
-      input_fmt = @s16le_caps.format |> Raw.Format.serialize()
+      input_fmt = @s16le_caps.sample_format |> RawAudio.SampleFormat.serialize()
       input_rate = @s16le_caps.sample_rate
       input_channel = @s16le_caps.channels
-      out_fmt = @u8_caps.format |> Raw.Format.serialize()
+      out_fmt = @u8_caps.sample_format |> RawAudio.SampleFormat.serialize()
       out_rate = @u8_caps.sample_rate
       out_channel = @u8_caps.channels
 
@@ -150,7 +150,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       assert {{:ok, actions}, ^state} = @module.handle_demand(:output, 2, :buffers, nil, state)
 
       buffers_size =
-        2 * state.frames_per_buffer * Raw.sample_size(state.input_caps) *
+        2 * state.frames_per_buffer * RawAudio.sample_size(state.input_caps) *
           state.input_caps.channels
 
       assert actions == [demand: {:input, buffers_size}]

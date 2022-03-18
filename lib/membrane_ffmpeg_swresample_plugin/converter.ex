@@ -5,23 +5,21 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   """
 
   use Membrane.Filter
-
   import Mockery.Macro
 
-  alias Membrane.Caps.Audio.Raw, as: RawAudio
-  alias Membrane.Buffer
+  alias Membrane.{RawAudio, Buffer}
   alias Membrane.Caps.Matcher
   alias __MODULE__.Native
 
   @supported_caps {RawAudio,
-                   format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
+                   sample_format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
                    channels: Matcher.one_of([1, 2])}
 
   def_output_pad :output, caps: @supported_caps
 
   def_input_pad :input,
     demand_unit: :bytes,
-    caps: [@supported_caps, {RawAudio, format: :s24le, channels: one_of([1, 2])}]
+    caps: [@supported_caps, {RawAudio, sample_format: :s24le, channels: one_of([1, 2])}]
 
   def_options input_caps: [
                 type: :caps,
@@ -37,7 +35,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
                 type: :caps,
                 spec: RawAudio.t(),
                 description: """
-                Audio caps for souce pad (output)
+                Audio caps for source pad (output)
                 """
               ],
               frames_per_buffer: [
@@ -132,14 +130,18 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   defp mk_native(
-         %RawAudio{format: input_format, sample_rate: input_rate, channels: input_channels},
-         %RawAudio{format: out_format, sample_rate: out_rate, channels: out_channels}
+         %RawAudio{
+           sample_format: input_format,
+           sample_rate: input_rate,
+           channels: input_channels
+         },
+         %RawAudio{sample_format: out_format, sample_rate: out_rate, channels: out_channels}
        ) do
     mockable(Native).create(
-      input_format |> RawAudio.Format.serialize(),
+      input_format |> RawAudio.SampleFormat.serialize(),
       input_rate,
       input_channels,
-      out_format |> RawAudio.Format.serialize(),
+      out_format |> RawAudio.SampleFormat.serialize(),
       out_rate,
       out_channels
     )

@@ -1,6 +1,7 @@
 defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
+  @moduledoc false
   use ExUnit.Case, async: true
-  alias Membrane.Caps.Audio.Raw
+  alias Membrane.RawAudio
 
   @module Membrane.FFmpeg.SWResample.Converter.Native
 
@@ -17,10 +18,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
           out_rate <- rates,
           out_channels <- channels do
         [
-          input_fmt |> Raw.Format.serialize(),
+          input_fmt |> RawAudio.SampleFormat.serialize(),
           input_rate,
           input_channels,
-          out_fmt |> Raw.Format.serialize(),
+          out_fmt |> RawAudio.SampleFormat.serialize(),
           out_rate,
           out_channels
         ]
@@ -40,10 +41,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
     ] = input
 
     [
-      input_fmt |> Raw.Format.serialize(),
+      input_fmt |> RawAudio.SampleFormat.serialize(),
       input_rate,
       input_channels,
-      out_fmt |> Raw.Format.serialize(),
+      out_fmt |> RawAudio.SampleFormat.serialize(),
       out_rate,
       out_channels
     ]
@@ -51,10 +52,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
 
   defp mk_simple_converter(out_fmt, dst_fmt) do
     @module.create(
-      out_fmt |> Raw.Format.serialize(),
+      out_fmt |> RawAudio.SampleFormat.serialize(),
       48_000,
       1,
-      dst_fmt |> Raw.Format.serialize(),
+      dst_fmt |> RawAudio.SampleFormat.serialize(),
       48_000,
       1
     )
@@ -134,10 +135,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
       for size <- [1234, 5120, 20_480, 384_000] do
         {:ok, handle} =
           @module.create(
-            :s16le |> Raw.Format.serialize(),
+            :s16le |> RawAudio.SampleFormat.serialize(),
             48_000,
             2,
-            :u8 |> Raw.Format.serialize(),
+            :u8 |> RawAudio.SampleFormat.serialize(),
             24_000,
             1
           )
@@ -154,10 +155,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter.NativeTest do
       for n <- [1, 10, 100] do
         {:ok, handle} =
           @module.create(
-            :f32le |> Raw.Format.serialize(),
+            :f32le |> RawAudio.SampleFormat.serialize(),
             48_000,
             2,
-            :s16le |> Raw.Format.serialize(),
+            :s16le |> RawAudio.SampleFormat.serialize(),
             44_100,
             2
           )
