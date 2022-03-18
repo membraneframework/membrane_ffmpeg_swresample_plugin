@@ -27,7 +27,7 @@ defmodule Resampling.Pipeline do
 
   alias Membrane.Element.File
   alias Membrane.FFmpeg.SWResample.Converter
-  alias Membrane.Caps.Audio.Raw
+  alias Membrane.RawAudio
 
   @doc false
   @impl true
@@ -35,8 +35,8 @@ defmodule Resampling.Pipeline do
     children = [
       file_src: %File.Source{location: "/tmp/input.raw"},
       converter: %Converter{
-        input_caps: %Raw{channels: 2, format: :s24le, sample_rate: 48_000},
-        output_caps: %Raw{channels: 2, format: :f32le, sample_rate: 44_100}
+        input_caps: %RawAudio{channels: 2, sample_format: :s24le, sample_rate: 48_000},
+        output_caps: %RawAudio{channels: 2, sample_format: :f32le, sample_rate: 44_100}
       },
       file_sink: %File.Sink{location: "/tmp/output.raw"},
     ]
