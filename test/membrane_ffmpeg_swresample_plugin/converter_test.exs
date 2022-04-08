@@ -37,9 +37,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
     mock(@native, [create: 6], {:ok, :mock_handle})
 
     assert {{:ok, actions}, new_state} = @module.handle_caps(:input, @s16le_caps, nil, state)
-    assert length(actions) == 2
-    assert {:output, state.output_caps} == actions[:caps]
-    assert :output == actions[:redemand]
+    assert actions == [caps: {:output, state.output_caps}]
 
     assert %{native: :mock_handle} = new_state
 
@@ -133,34 +131,6 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
     end
   end
 
-  describe "handle_demand/4 should" do
-    test "convert the demand if converter have been created and demand was in bytes", %{
-      state: initial_state
-    } do
-      state = %{initial_state | native: :not_nil, input_caps: @s16le_caps}
-      context = %{pads: %{output: %{caps: @u8_caps}}}
-
-      assert {{:ok, [demand: {:input, 184}]}, state} ==
-               @module.handle_demand(:output, 42, :bytes, context, state)
-    end
-
-    test "calculate and pass proper demand in bytes if converter have been created and demand was in buffers",
-         %{state: initial_state} do
-      state = %{initial_state | native: :not_nil, input_caps: @s16le_caps}
-      assert {{:ok, actions}, ^state} = @module.handle_demand(:output, 2, :buffers, nil, state)
-
-      buffers_size =
-        2 * state.frames_per_buffer * RawAudio.sample_size(state.input_caps) *
-          state.input_caps.channels
-
-      assert actions == [demand: {:input, buffers_size}]
-    end
-
-    test "ignore the demands if converter haven't been created", %{state: state} do
-      assert @module.handle_demand(:output, 42, :bytes, nil, state) == {:ok, state}
-    end
-  end
-
   describe "handle_process/4 should" do
     test "store payload in queue until there are at least 2 frames", %{state: initial_state} do
       state = %{initial_state | native: :mock_handle, input_caps: @s16le_caps}
@@ -168,8 +138,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       buffer = %Membrane.Buffer{payload: payload}
       mock(@native, [convert: 2], {:error, :reason})
 
-      assert {{:ok, redemand: :output}, new_state} =
-               @module.handle_process(:input, buffer, nil, state)
+      assert {:ok, new_state} = @module.handle_process(:input, buffer, nil, state)
 
       assert new_state == %{state | queue: payload}
       refute_called(@native, :convert)
@@ -190,7 +159,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
       assert {{:ok, actions}, new_state} = @module.handle_process(:input, buffer, nil, state)
 
-      assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}, redemand: :output]
+      assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}]
       assert new_state == %{state | queue: <<0::2*8>>}
     end
   end
