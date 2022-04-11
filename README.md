@@ -17,7 +17,6 @@ Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
 ```
 
 You also need to have [FFmpeg](https://www.ffmpeg.org/) library installed.
-For usage on windows, see `Using on Windows` section below.
 
 ## Sample usage
 
@@ -51,21 +50,6 @@ defmodule Resampling.Pipeline do
   end
 end
 ```
-
-## Using on Windows
-
-It is possible to compile and use this plugin on Windows platform. That requires:
-
-* Git-LFS to clone binaries placed in `ext/windows` directory
-* Visual C++ Build Tools with Windows SDK (tested on build tools 2015 and SDK for Windows 10)
-* FFMpeg 3.4.2 DLLs - `avutil-55.dll` and `swresample-2.dll`
-  (64-bit version abvailable [here](https://ffmpeg.zeranoe.com/builds/win64/shared/ffmpeg-3.4.2-win64-shared.zip),
-  32-bit [here](https://ffmpeg.zeranoe.com/builds/win32/shared/ffmpeg-3.4.2-win32-shared.zip)).
-  The DLLs have to be available at runtime. This can be achieved in a couple of ways:
-  * adding directory with DLLs to `PATH` environment variable
-  * placing them in current directory (where you start `mix run`)
-  * placing them in the directory where erlang executable is located
-  * making them available system-wide by placing in system (`C:\Windows\System32`, `C:\Windows\SysWOW64`) or Windows (`C:\Windows`) directory
 
 ## Copyright and License
 
