@@ -79,7 +79,6 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
       files: [
         "lib",
         "c_src",
-        "ext",
         "mix.exs",
         "README*",
         "LICENSE*",
