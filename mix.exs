@@ -7,19 +7,25 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
   def project do
     [
       app: :membrane_ffmpeg_swresample_plugin,
-      compilers: [:unifex, :bundlex] ++ Mix.compilers(),
       version: @version,
+      compilers: [:unifex, :bundlex] ++ Mix.compilers(),
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
+      deps: deps(),
+      dialyzer: dialyzer(),
+
+      # hex
       description: """
       Plugin performing audio conversion, resampling and channel mixing.
       Uses SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
       """,
       package: package(),
+
+      # docs
       name: "Membrane FFmpeg SWResample plugin",
-      output_url: @github_url,
-      docs: docs(),
-      deps: deps()
+      source_url: @github_url,
+      homepage_url: "https://membraneframework.org",
+      docs: docs()
     ]
   end
 
@@ -32,14 +38,34 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp docs do
+  defp deps do
     [
-      main: "readme",
-      extras: ["README.md", "LICENSE"],
-      formatters: ["html"],
-      source_ref: "v#{@version}",
-      nest_modules_by_prefix: [Membrane.FFmpeg.SWResample]
+      {:membrane_core, "~> 0.9.0"},
+      {:membrane_raw_audio_format, "~> 0.8.0"},
+      {:bunch, "~> 1.3.0"},
+      {:unifex, "~> 0.7.0"},
+      {:membrane_common_c, "~> 0.11.0"},
+      {:bundlex, "~> 0.5.0"},
+      # Testing
+      {:mockery, "~> 2.1", runtime: false},
+      # Development
+      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
+      {:credo, "~> 1.6", only: :dev, runtime: false}
     ]
+  end
+
+  defp dialyzer() do
+    opts = [
+      plt_local_path: "priv/plts",
+      flags: [:error_handling]
+    ]
+
+    if System.get_env("CI") == "true" do
+      [plt_core_path: "priv/plts"] ++ opts
+    else
+      opts
+    end
   end
 
   defp package do
@@ -63,20 +89,13 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
     ]
   end
 
-  defp deps do
+  defp docs do
     [
-      {:membrane_core, "~> 0.9.0"},
-      {:membrane_raw_audio_format, "~> 0.8.0"},
-      {:bunch, "~> 1.3.0"},
-      {:unifex, "~> 0.7.0"},
-      {:membrane_common_c, "~> 0.11.0"},
-      {:bundlex, "~> 0.5.0"},
-      # Testing
-      {:mockery, "~> 2.1", runtime: false},
-      # Development
-      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:credo, "~> 1.6", only: :dev, runtime: false}
+      main: "readme",
+      extras: ["README.md", "LICENSE"],
+      formatters: ["html"],
+      source_ref: "v#{@version}",
+      nest_modules_by_prefix: [Membrane.FFmpeg.SWResample]
     ]
   end
 end

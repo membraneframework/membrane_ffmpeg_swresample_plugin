@@ -37,15 +37,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
                 description: """
                 Audio caps for source pad (output)
                 """
-              ],
-              frames_per_buffer: [
-                type: :integer,
-                spec: pos_integer(),
-                default: 2048,
-                description: """
-                Assumed number of raw audio frames in each buffer.
-                Used when converting demand from buffers into bytes.
-                """
               ]
 
   @impl true
@@ -86,28 +77,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   def handle_caps(:input, caps, _ctx, state) do
     with {:ok, native} <- mk_native(caps, state.output_caps) do
       state = %{state | native: native, input_caps: caps}
-      {{:ok, caps: {:output, state.output_caps}, redemand: :output}, state}
+      {{:ok, caps: {:output, state.output_caps}}, state}
     else
       {:error, reason} -> {{:error, reason}, state}
     end
-  end
-
-  @impl true
-  def handle_demand(:output, _size, _unit, _ctx, %{native: nil} = state), do: {:ok, state}
-
-  @impl true
-  def handle_demand(:output, size, :bytes, ctx, state) do
-    size =
-      size
-      |> RawAudio.bytes_to_time(ctx.pads.output.caps)
-      |> RawAudio.time_to_bytes(state.input_caps)
-
-    {{:ok, demand: {:input, size}}, state}
-  end
-
-  def handle_demand(:output, n_buffers, :buffers, _ctx, state) do
-    size = n_buffers * RawAudio.frames_to_bytes(state.frames_per_buffer, state.input_caps)
-    {{:ok, demand: {:input, size}}, state}
   end
 
   @impl true
@@ -116,10 +89,9 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       convert(state.native, RawAudio.frame_size(state.input_caps), payload, state.queue)
 
     with {:ok, {result, queue}} when byte_size(result) > 0 <- conversion_result do
-      {{:ok, buffer: {:output, %Buffer{payload: result}}, redemand: :output},
-       %{state | queue: queue}}
+      {{:ok, buffer: {:output, %Buffer{payload: result}}}, %{state | queue: queue}}
     else
-      {:ok, {<<>>, queue}} -> {{:ok, redemand: :output}, %{state | queue: queue}}
+      {:ok, {<<>>, queue}} -> {:ok, %{state | queue: queue}}
       {:error, reason} -> {{:error, reason}, state}
     end
   end
