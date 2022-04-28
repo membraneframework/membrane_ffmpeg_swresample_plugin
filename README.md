@@ -13,7 +13,7 @@ It is a part of [Membrane Multimedia Framework](https://membraneframework.org).
 Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
 
 ```elixir
-{:membrane_ffmpeg_swresample_plugin, "~> 0.13.0"}
+{:membrane_ffmpeg_swresample_plugin, "~> 0.13.1"}
 ```
 
 You also need to have [FFmpeg](https://www.ffmpeg.org/) library installed.
