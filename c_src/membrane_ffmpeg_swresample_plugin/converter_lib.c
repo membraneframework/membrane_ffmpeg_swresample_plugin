@@ -110,9 +110,7 @@ char *lib_convert(ConverterState *state, uint8_t *input, int input_size,
 
   memcpy(src_data[0], input, input_size);
 
-  int max_dst_nb_samples = av_rescale_rnd(
-      swr_get_delay(state->swr_ctx, state->src_rate) + src_nb_samples,
-      state->dst_rate, state->src_rate, AV_ROUND_UP);
+  int max_dst_nb_samples = swr_get_out_samples(state->swr_ctx, src_nb_samples);
 
   if (0 > av_samples_alloc_array_and_samples(
               &dst_data, &dst_linesize, state->dst_nb_channels,
@@ -150,16 +148,8 @@ char *lib_flush(ConverterState *state, uint8_t **output, int *output_size) {
   uint8_t **dst_data = NULL;
   int dst_linesize;
 
-  int max_dst_nb_samples =
-      av_rescale_rnd(swr_get_delay(state->swr_ctx, state->src_rate),
-                     state->dst_rate, state->src_rate, AV_ROUND_UP);
+  int max_dst_nb_samples = swr_get_out_samples(state->swr_ctx, src_nb_samples);
 
-  if (max_dst_nb_samples == 0) {
-    // nothing was buffered, converter does not need flush
-    *output_size = 0;
-    *output = NULL;
-    return NULL;
-  }
   if (0 > av_samples_alloc_array_and_samples(
               &dst_data, &dst_linesize, state->dst_nb_channels,
               max_dst_nb_samples, state->dst_sample_fmt, 0)) {
@@ -175,8 +165,10 @@ char *lib_flush(ConverterState *state, uint8_t **output, int *output_size) {
   }
 
   if (dst_nb_samples == 0) {
+    *output = NULL;
     *output_size = 0;
   } else {
+    *output = dst_data[0];
     *output_size =
         av_samples_get_buffer_size(&dst_linesize, state->dst_nb_channels,
                                    dst_nb_samples, state->dst_sample_fmt, 1);
@@ -186,7 +178,6 @@ char *lib_flush(ConverterState *state, uint8_t **output, int *output_size) {
     }
   }
 
-  *output = dst_data[0];
   free_conversion_data(NULL, state, NULL, NULL, dst_data);
   return NULL;
 }

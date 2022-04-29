@@ -33,4 +33,4 @@ spec create(
 # conversion parameters.
 spec convert(payload, state) :: {:ok :: label, payload} | {:error :: label, reason :: atom}
 
-dirty :cpu, [convert: 2]
+dirty :cpu, convert: 2

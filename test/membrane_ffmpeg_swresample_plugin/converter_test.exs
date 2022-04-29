@@ -97,7 +97,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       state = %{initial_state | input_caps: @s16le_caps, input_caps_provided?: true}
       mock(@native, [create: 6], {:error, :reason})
 
-      assert @module.handle_stopped_to_prepared(:stopped, state) == {{:error, :reason}, state}
+      assert_raise RuntimeError, fn -> @module.handle_stopped_to_prepared(:stopped, state) end
     end
   end
 
@@ -127,7 +127,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       state: state
     } do
       mock(@native, [create: 6], {:error, :reason})
-      assert @module.handle_caps(:input, @s16le_caps, nil, state) == {{:error, :reason}, state}
+      assert_raise RuntimeError, fn -> @module.handle_caps(:input, @s16le_caps, nil, state) end
     end
   end
 
