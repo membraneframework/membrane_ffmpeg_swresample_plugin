@@ -133,11 +133,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       )
     end
 
-    conversion_result =
-      flush!(state.native)
-      |> IO.inspect(label: :eof)
-
-    case conversion_result do
+    case flush!(state.native) do
       <<>> ->
         {{:ok, end_of_stream: :output}, %{state | queue: <<>>}}
 

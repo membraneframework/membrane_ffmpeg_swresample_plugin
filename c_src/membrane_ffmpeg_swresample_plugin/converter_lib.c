@@ -148,7 +148,14 @@ char *lib_flush(ConverterState *state, uint8_t **output, int *output_size) {
   uint8_t **dst_data = NULL;
   int dst_linesize;
 
-  int max_dst_nb_samples = swr_get_out_samples(state->swr_ctx, src_nb_samples);
+  int max_dst_nb_samples = swr_get_out_samples(state->swr_ctx, 0);
+
+  if (max_dst_nb_samples == 0) {
+    // nothing was buffered, converter does not need flush
+    *output = NULL;
+    *output_size = 0;
+    return NULL;
+  }
 
   if (0 > av_samples_alloc_array_and_samples(
               &dst_data, &dst_linesize, state->dst_nb_channels,

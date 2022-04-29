@@ -28,10 +28,9 @@ defmodule Membrane.FFmpeg.SWResample.PipelineTest do
     ]
 
     assert {:ok, pipeline} = Testing.Pipeline.start_link(opts)
-    Testing.Pipeline.play(pipeline)
     assert_pipeline_playback_changed(pipeline, :prepared, :playing)
     assert_end_of_stream(pipeline, :sink)
-    Testing.Pipeline.stop_and_terminate(pipeline, blocking?: true)
+    Testing.Pipeline.terminate(pipeline, blocking?: true)
 
     assert result = File.read!(output_path)
     assert byte_size(result) == RawAudio.time_to_bytes(input_time, output_caps)
