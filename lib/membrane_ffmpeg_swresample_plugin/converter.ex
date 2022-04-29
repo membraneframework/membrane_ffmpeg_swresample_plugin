@@ -15,9 +15,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
                    sample_format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
                    channels: Matcher.one_of([1, 2])}
 
-  def_output_pad :output, caps: @supported_caps
+  def_output_pad :output, demand_mode: :auto, caps: @supported_out_caps
 
   def_input_pad :input,
+    demand_mode: :auto,
     demand_unit: :bytes,
     caps: [@supported_caps, {RawAudio, sample_format: :s24le, channels: one_of([1, 2])}]
 
