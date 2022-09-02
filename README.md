@@ -6,7 +6,7 @@
 
 Plugin performing audio conversion, resampling and channel mixing, using SWResample module of [FFmpeg](https://www.ffmpeg.org/) library.
 
-It is a part of [Membrane Multimedia Framework](https://membraneframework.org).
+It is a part of [Membrane Multimedia Framework](https://membrane.stream).
 
 ## Installation
 
@@ -18,7 +18,10 @@ Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
 
 You also need to have [FFmpeg](https://www.ffmpeg.org/) library installed.
 
-## Sample usage
+## Usage
+
+The pipeline takes raw audio, converts the sample format from `s24le` to `f32le` and resamples
+it to 44.1 kHz rate.
 
 ```elixir
 defmodule Resampling.Pipeline do
