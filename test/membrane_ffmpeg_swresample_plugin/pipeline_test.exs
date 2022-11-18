@@ -1,10 +1,11 @@
 defmodule Membrane.FFmpeg.SWResample.PipelineTest do
   use ExUnit.Case, async: true
 
+  import Membrane.ChildrenSpec
   import Membrane.Testing.Assertions
 
-  alias Membrane.{Testing, RawAudio}
   alias Membrane.FFmpeg.SWResample.Converter
+  alias Membrane.{RawAudio, Testing}
 
   @tag :tmp_dir
   test "surrounded by testing source and sink", %{tmp_dir: tmp_dir} do
@@ -17,18 +18,26 @@ defmodule Membrane.FFmpeg.SWResample.PipelineTest do
 
     output_path = Path.expand(Path.join(tmp_dir, "output_s16le_stereo_16khz.raw"))
 
-    children = [
-      source: %Membrane.File.Source{location: fixture_path},
-      resampler: %Converter{input_caps: input_caps, output_caps: output_caps},
-      sink: %Membrane.File.Sink{location: output_path}
+    # children = [
+    #   source: %Membrane.File.Source{location: fixture_path},
+    #   resampler: %Converter{input_caps: input_caps, output_caps: output_caps},
+    #   sink: %Membrane.File.Sink{location: output_path}
+    # ]
+
+    # opts = [
+    #   links: Membrane.ParentSpec.link_linear(children)
+    # ]
+    structure = [
+      child(:source, %Membrane.File.Source{location: fixture_path}),
+      get_child(:source)
+      |> child(:resampler, %Converter{input_caps: input_caps, output_caps: output_caps})
+      |> child(:sink, %Membrane.File.Sink{location: output_path})
     ]
 
-    opts = [
-      links: Membrane.ParentSpec.link_linear(children)
-    ]
+    assert {:ok, _pipeline_supervisor, pipeline} =
+             Testing.Pipeline.start_link(structure: structure)
 
-    assert {:ok, pipeline} = Testing.Pipeline.start_link(opts)
-    assert_pipeline_playback_changed(pipeline, :prepared, :playing)
+    assert_pipeline_setup(pipeline)
     assert_end_of_stream(pipeline, :sink)
     Testing.Pipeline.terminate(pipeline, blocking?: true)
 
