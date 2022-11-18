@@ -9,24 +9,28 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
   require Membrane.Logger
 
-  alias Membrane.{Buffer, RawAudio, RemoteStream}
-  alias Membrane.Caps.Matcher
   alias __MODULE__.Native
+  alias Membrane.{Buffer, RawAudio, RemoteStream}
 
-  @supported_out_caps {RawAudio,
-                       sample_format: Matcher.one_of([:u8, :s16le, :s32le, :f32le, :f64le]),
-                       channels: Matcher.one_of([1, 2])}
+  @supported_format [:u8, :s16le, :s32le, :f32le, :f64le]
+  @supported_channels [1, 2]
 
-  def_output_pad :output, demand_mode: :auto, caps: @supported_out_caps
+  def_output_pad :output,
+    demand_mode: :auto,
+    accepted_format:
+      %RawAudio{sample_format: format, channels: channels}
+      when format in @supported_format and channels in @supported_channels
 
   def_input_pad :input,
     demand_mode: :auto,
     demand_unit: :bytes,
-    caps: [
-      @supported_out_caps,
-      {RemoteStream, content_format: one_of([nil, RawAudio])},
-      {RawAudio, sample_format: :s24le, channels: one_of([1, 2])}
-    ]
+    accepted_format:
+      any_of(
+        %RawAudio{sample_format: format, channels: channels}
+        when format in @supported_format and channels in @supported_channels,
+        %RemoteStream{content_format: format} when format in [nil, RawAudio],
+        %RawAudio{sample_format: :s24le, channels: channels} when channels in @supported_channels
+      )
 
   def_options input_caps: [
                 type: :caps,
