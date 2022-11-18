@@ -7,13 +7,13 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
   @module Converter
   @native Converter.Native
 
-  @s16le_caps %RawAudio{
+  @s16le_format %RawAudio{
     channels: 2,
     sample_format: :s16le,
     sample_rate: 48_000
   }
 
-  @u8_caps %RawAudio{
+  @u8_format %RawAudio{
     channels: 1,
     sample_format: :u8,
     sample_rate: 44_100
@@ -22,9 +22,9 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
   defp initial_state(_ctx) do
     %{
       state: %{
-        input_caps: nil,
-        input_caps_provided?: false,
-        output_caps: @u8_caps,
+        input_stream_format: nil,
+        input_stream_format_provided?: false,
+        output_stream_format: @u8_format,
         frames_per_buffer: 2048,
         native: nil,
         queue: <<>>
@@ -36,18 +36,18 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
     Mockery.History.enable_history()
     mock(@native, [create: 6], {:ok, :mock_handle})
 
-    assert {actions, new_state} = @module.handle_stream_format(:input, @s16le_caps, nil, state)
+    assert {actions, new_state} = @module.handle_stream_format(:input, @s16le_format, nil, state)
 
-    assert actions == [caps: {:output, state.output_caps}]
+    assert actions == [stream_format: {:output, state.output_stream_format}]
 
     assert %{native: :mock_handle} = new_state
 
-    input_fmt = @s16le_caps.sample_format |> RawAudio.SampleFormat.serialize()
-    input_rate = @s16le_caps.sample_rate
-    input_channel = @s16le_caps.channels
-    out_fmt = @u8_caps.sample_format |> RawAudio.SampleFormat.serialize()
-    out_rate = @u8_caps.sample_rate
-    out_channel = @u8_caps.channels
+    input_fmt = @s16le_format.sample_format |> RawAudio.SampleFormat.serialize()
+    input_rate = @s16le_format.sample_rate
+    input_channel = @s16le_format.channels
+    out_fmt = @u8_format.sample_format |> RawAudio.SampleFormat.serialize()
+    out_rate = @u8_format.sample_rate
+    out_channel = @u8_format.channels
 
     assert_called(
       @native,
@@ -60,24 +60,29 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
   setup_all :initial_state
 
   describe "handle_stream_format/4" do
-    test "given new caps when input_caps were not set should create native resource and store it in state",
+    test "given new stream format when input_stream_format were not set should create native resource and store it in state",
          %{state: state} do
       test_handle_stream_format(state)
     end
 
-    test "given the same caps as set in options should create native resource and store it in state",
+    test "given the same stream format as set in options should create native resource and store it in state",
          %{state: initial_state} do
-      state = %{initial_state | input_caps: @s16le_caps}
+      state = %{initial_state | input_stream_format: @s16le_format}
       test_handle_stream_format(state)
     end
 
-    test "should raise when received caps don't match caps input_caps set in options", %{
-      state: initial_state
-    } do
-      state = %{initial_state | input_caps: @s16le_caps, input_caps_provided?: true}
+    test "should raise when received stream format don't match stream format input_stream_format set in options",
+         %{
+           state: initial_state
+         } do
+      state = %{
+        initial_state
+        | input_stream_format: @s16le_format,
+          input_stream_format_provided?: true
+      }
 
       assert_raise RuntimeError, fn ->
-        @module.handle_stream_format(:input, @u8_caps, nil, state)
+        @module.handle_stream_format(:input, @u8_format, nil, state)
       end
     end
 
@@ -87,14 +92,14 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       mock(@native, [create: 6], {:error, :reason})
 
       assert_raise RuntimeError, fn ->
-        @module.handle_stream_format(:input, @s16le_caps, nil, state)
+        @module.handle_stream_format(:input, @s16le_format, nil, state)
       end
     end
   end
 
   describe "handle_process/4 should" do
     test "store payload in queue until there are at least 2 frames", %{state: initial_state} do
-      state = %{initial_state | native: :mock_handle, input_caps: @s16le_caps}
+      state = %{initial_state | native: :mock_handle, input_stream_format: @s16le_format}
       payload = <<0::3*8>>
       buffer = %Membrane.Buffer{payload: payload}
       mock(@native, [convert: 2], {:error, :reason})
@@ -110,7 +115,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
         initial_state
         | queue: <<250, 250, 0>>,
           native: :mock_handle,
-          input_caps: @s16le_caps
+          input_stream_format: @s16le_format
       }
 
       payload = <<0::7*8>>

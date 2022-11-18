@@ -32,35 +32,33 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         %RawAudio{sample_format: :s24le, channels: channels} when channels in @supported_channels
       )
 
-  def_options input_caps: [
-                type: :caps,
+  def_options input_stream_format: [
                 spec: RawAudio.t() | nil,
                 default: nil,
                 description: """
-                Caps for the input pad. If set to nil (default value),
-                caps are assumed to be received through the pad. If explicitly set to some
-                caps, they cannot be changed by caps received through the pad.
+                Streak format for the input pad. If set to nil (default value),
+                stream format are assumed to be received through the pad. If explicitly set to some
+                stream format, they cannot be changed by stream format received through the pad.
                 """
               ],
-              output_caps: [
-                type: :caps,
+              output_stream_format: [
                 spec: RawAudio.t(),
                 description: """
-                Audio caps for source pad (output)
+                Audio stream format for source pad (output)
                 """
               ]
 
   @impl true
   def handle_init(_ctx, %__MODULE__{} = options) do
-    case options.input_caps do
+    case options.input_stream_format do
       %RawAudio{} -> :ok
       nil -> :ok
-      _other -> raise ":input_caps must be nil or %RawAudio{}"
+      _other -> raise ":input_stream_format must be nil or %RawAudio{}"
     end
 
-    case options.output_caps do
+    case options.output_stream_format do
       %RawAudio{} -> :ok
-      _other -> raise ":output_caps must be %RawAudio{}"
+      _other -> raise ":output_stream_format must be %RawAudio{}"
     end
 
     state =
@@ -69,57 +67,62 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       |> Map.merge(%{
         native: nil,
         queue: <<>>,
-        input_caps_provided?: options.input_caps != nil
+        input_stream_format_provided?: options.input_stream_format != nil
       })
 
     {[], state}
   end
 
   @impl true
-  def handle_setup(_ctx, %{input_caps_provided?: false} = state), do: {[], state}
+  def handle_setup(_ctx, %{input_stream_format_provided?: false} = state), do: {[], state}
 
   def handle_setup(_ctx, state) do
-    native = mk_native!(state.input_caps, state.output_caps)
-    {[caps: {:output, state.output_caps}], %{state | native: native}}
+    native = mk_native!(state.input_stream_format, state.output_stream_format)
+    {[stream_format: {:output, state.output_stream_format}], %{state | native: native}}
   end
 
   @impl true
-  def handle_stream_format(:input, %RemoteStream{}, _ctx, %{input_caps_provided?: false}) do
+  def handle_stream_format(:input, %RemoteStream{}, _ctx, %{input_stream_format_provided?: false}) do
     raise """
-    Cannot handle RemoteStream without explicitly providing `input_caps` via element options
+    Cannot handle RemoteStream without explicitly providing `input_stream_format` via element options
     """
   end
 
   @impl true
-  def handle_stream_format(:input, %RemoteStream{}, _ctx, %{input_caps: stored_caps} = state) do
-    native = mk_native!(stored_caps, state.output_caps)
+  def handle_stream_format(
+        :input,
+        %RemoteStream{},
+        _ctx,
+        %{input_stream_format: stored_stream_format} = state
+      ) do
+    native = mk_native!(stored_stream_format, state.output_stream_format)
     state = %{state | native: native}
-    {[caps: {:output, state.output_caps}], state}
+    {[stream_format: {:output, state.output_stream_format}], state}
   end
 
   @impl true
-  def handle_stream_format(:input, caps, _ctx, %{
-        input_caps_provided?: true,
-        input_caps: stored_caps
+  def handle_stream_format(:input, stream_format, _ctx, %{
+        input_stream_format_provided?: true,
+        input_stream_format: stored_stream_format
       })
-      when stored_caps != caps do
+      when stored_stream_format != stream_format do
     raise """
-    Received caps #{inspect(caps)} are different then defined in options #{inspect(stored_caps)}.
-    If you want to allow converter to accept different input caps dynamically, use `nil` as input_caps.
+    Received stream_format #{inspect(stream_format)} are different then defined in options #{inspect(stored_stream_format)}.
+    If you want to allow converter to accept different input stream_format dynamically, use `nil` as input_stream_format.
     """
   end
 
   @impl true
-  def handle_stream_format(:input, %RawAudio{} = caps, _ctx, state) do
-    native = mk_native!(caps, state.output_caps)
-    state = %{state | native: native, input_caps: caps}
-    {[caps: {:output, state.output_caps}], state}
+  def handle_stream_format(:input, %RawAudio{} = stream_format, _ctx, state) do
+    native = mk_native!(stream_format, state.output_stream_format)
+    state = %{state | native: native, input_stream_format: stream_format}
+    {[stream_format: {:output, state.output_stream_format}], state}
   end
 
   @impl true
   def handle_process(:input, %Buffer{payload: payload}, _ctx, state) do
     conversion_result =
-      convert!(state.native, RawAudio.frame_size(state.input_caps), payload, state.queue)
+      convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
 
     case conversion_result do
       {<<>>, queue} ->
