@@ -51,7 +51,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
               ]
 
   @impl true
-  def handle_init(%__MODULE__{} = options) do
+  def handle_init(_ctx, %__MODULE__{} = options) do
     case options.input_caps do
       %RawAudio{} -> :ok
       nil -> :ok
@@ -84,21 +84,24 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_caps(:input, %RemoteStream{}, _ctx, %{input_caps_provided?: false}) do
+  def handle_stream_format(:input, %RemoteStream{}, _ctx, %{input_caps_provided?: false}) do
     raise """
     Cannot handle RemoteStream without explicitly providing `input_caps` via element options
     """
   end
 
   @impl true
-  def handle_caps(:input, %RemoteStream{}, _ctx, %{input_caps: stored_caps} = state) do
+  def handle_stream_format(:input, %RemoteStream{}, _ctx, %{input_caps: stored_caps} = state) do
     native = mk_native!(stored_caps, state.output_caps)
     state = %{state | native: native}
     {[caps: {:output, state.output_caps}], state}
   end
 
   @impl true
-  def handle_caps(:input, caps, _ctx, %{input_caps_provided?: true, input_caps: stored_caps})
+  def handle_stream_format(:input, caps, _ctx, %{
+        input_caps_provided?: true,
+        input_caps: stored_caps
+      })
       when stored_caps != caps do
     raise """
     Received caps #{inspect(caps)} are different then defined in options #{inspect(stored_caps)}.
@@ -107,7 +110,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_caps(:input, %RawAudio{} = caps, _ctx, state) do
+  def handle_stream_format(:input, %RawAudio{} = caps, _ctx, state) do
     native = mk_native!(caps, state.output_caps)
     state = %{state | native: native, input_caps: caps}
     {[caps: {:output, state.output_caps}], state}
@@ -148,8 +151,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_prepared_to_stopped(_ctx, state) do
-    {[], %{state | native: nil}}
+  def handle_terminate_request(_ctx, state) do
+    {[terminate: :normal], %{state | native: nil}}
   end
 
   defp mk_native!(
