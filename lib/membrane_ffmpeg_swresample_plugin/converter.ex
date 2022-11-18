@@ -12,14 +12,14 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   alias __MODULE__.Native
   alias Membrane.{Buffer, RawAudio, RemoteStream}
 
-  @supported_format [:u8, :s16le, :s32le, :f32le, :f64le]
+  @supported_sample_format [:u8, :s16le, :s32le, :f32le, :f64le]
   @supported_channels [1, 2]
 
   def_output_pad :output,
     demand_mode: :auto,
     accepted_format:
       %RawAudio{sample_format: format, channels: channels}
-      when format in @supported_format and channels in @supported_channels
+      when format in @supported_sample_format and channels in @supported_channels
 
   def_input_pad :input,
     demand_mode: :auto,
@@ -27,7 +27,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     accepted_format:
       any_of(
         %RawAudio{sample_format: format, channels: channels}
-        when format in @supported_format and channels in @supported_channels,
+        when format in @supported_sample_format and channels in @supported_channels,
         %RemoteStream{content_format: format} when format in [nil, RawAudio],
         %RawAudio{sample_format: :s24le, channels: channels} when channels in @supported_channels
       )
@@ -36,15 +36,15 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
                 spec: RawAudio.t() | nil,
                 default: nil,
                 description: """
-                Streak format for the input pad. If set to nil (default value),
-                stream format are assumed to be received through the pad. If explicitly set to some
-                stream format, they cannot be changed by stream format received through the pad.
+                Stream format for the input pad. If set to nil (default value),
+                stream format is assumed to be received through the pad. If explicitly set to some
+                stream format, it cannot be changed by stream format received through the pad.
                 """
               ],
               output_stream_format: [
                 spec: RawAudio.t(),
                 description: """
-                Audio stream format for source pad (output)
+                Audio stream format for output pad
                 """
               ]
 
@@ -107,8 +107,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       })
       when stored_stream_format != stream_format do
     raise """
-    Received stream_format #{inspect(stream_format)} are different then defined in options #{inspect(stored_stream_format)}.
-    If you want to allow converter to accept different input stream_format dynamically, use `nil` as input_stream_format.
+    Received stream_format #{inspect(stream_format)} are different then the one defined in options #{inspect(stored_stream_format)}.
+    If you want to allow converter to accept different input stream formats dynamically, use `nil` as input_stream_format.
     """
   end
 
@@ -156,11 +156,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[buffer: {:output, %Buffer{payload: converted}}, end_of_stream: :output],
          %{state | queue: <<>>}}
     end
-  end
-
-  @impl true
-  def handle_terminate_request(_ctx, state) do
-    {[terminate: :normal], %{state | native: nil}}
   end
 
   defp mk_native!(

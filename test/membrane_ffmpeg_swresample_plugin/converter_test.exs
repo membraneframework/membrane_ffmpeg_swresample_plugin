@@ -59,6 +59,56 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
   setup_all :initial_state
 
+  describe "handle_setup/2" do
+    test "should do nothing if input stream format is not set", %{state: state} do
+      assert @module.handle_setup(nil, state) == {[], state}
+      refute_called(@native, :create)
+    end
+
+    test "create native converter if stream format is set", %{state: initial_state} do
+      state = %{
+        initial_state
+        | input_stream_format: @s16le_format,
+          input_stream_format_provided?: true
+      }
+
+      Mockery.History.enable_history()
+      mock(@native, [create: 6], {:ok, :mock_handle})
+
+      assert {[], new_state} = @module.handle_setup(:stopped, state)
+
+      assert %{native: :mock_handle} = new_state
+
+      input_fmt = @s16le_format.sample_format |> RawAudio.SampleFormat.serialize()
+      input_rate = @s16le_format.sample_rate
+      input_channel = @s16le_format.channels
+      out_fmt = @u8_format.sample_format |> RawAudio.SampleFormat.serialize()
+      out_rate = @u8_format.sample_rate
+      out_channel = @u8_format.channels
+
+      assert_called(
+        @native,
+        :create,
+        [^input_fmt, ^input_rate, ^input_channel, ^out_fmt, ^out_rate, ^out_channel],
+        1
+      )
+    end
+
+    test "if native cannot be created returns an error with reason and untouched state", %{
+      state: initial_state
+    } do
+      state = %{
+        initial_state
+        | input_stream_format: @s16le_format,
+          input_stream_format_provided?: true
+      }
+
+      mock(@native, [create: 6], {:error, :reason})
+
+      assert_raise RuntimeError, fn -> @module.handle_setup(nil, state) end
+    end
+  end
+
   describe "handle_stream_format/4" do
     test "given new stream format when input_stream_format were not set should create native resource and store it in state",
          %{state: state} do
@@ -128,11 +178,5 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}]
       assert new_state == %{state | queue: <<0::2*8>>}
     end
-  end
-
-  test "handle_terminate_request should remove native from state", %{state: initial_state} do
-    state = %{initial_state | native: :mock_handle}
-    assert {_, new_state} = @module.handle_terminate_request(nil, state)
-    assert new_state == %{state | native: nil}
   end
 end
