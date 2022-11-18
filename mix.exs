@@ -41,9 +41,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
   defp deps do
     [
       {:membrane_core, "~> 0.11.0"},
-      {:membrane_raw_audio_format,
-       git: "https://github.com/membraneframework/membrane_raw_audio_format.git",
-       branch: "core-v0.11"},
+      {:membrane_raw_audio_format, "~> 0.10.0"},
       {:bunch, "~> 1.5.0"},
       {:unifex, "~> 1.0"},
       {:membrane_common_c, "~> 0.14.0"},
