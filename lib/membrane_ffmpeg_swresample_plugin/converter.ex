@@ -78,7 +78,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
   def handle_setup(_ctx, state) do
     native = mk_native!(state.input_stream_format, state.output_stream_format)
-    {[stream_format: {:output, state.output_stream_format}], %{state | native: native}}
+    {[], %{state | native: native}}
   end
 
   @impl true
@@ -120,6 +120,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
+  def handle_playing(_ctx, state) do
+    {[stream_format: {:output, state.output_stream_format}], state}
+  end
+
+  @impl true
   def handle_process(:input, %Buffer{payload: payload}, _ctx, state) do
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
@@ -148,7 +153,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
-        {[buffer: {:output, %Buffer{payload: converted}, end_of_stream: :output}],
+        {[buffer: {:output, %Buffer{payload: converted}}, end_of_stream: :output],
          %{state | queue: <<>>}}
     end
   end
