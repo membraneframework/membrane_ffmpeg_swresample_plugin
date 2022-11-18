@@ -72,15 +72,15 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         input_caps_provided?: options.input_caps != nil
       })
 
-    {:ok, state}
+    {[], state}
   end
 
   @impl true
-  def handle_stopped_to_prepared(_ctx, %{input_caps_provided?: false} = state), do: {:ok, state}
+  def handle_setup(_ctx, %{input_caps_provided?: false} = state), do: {[], state}
 
-  def handle_stopped_to_prepared(_ctx, state) do
+  def handle_setup(_ctx, state) do
     native = mk_native!(state.input_caps, state.output_caps)
-    {{:ok, caps: {:output, state.output_caps}}, %{state | native: native}}
+    {[caps: {:output, state.output_caps}], %{state | native: native}}
   end
 
   @impl true
@@ -94,7 +94,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   def handle_caps(:input, %RemoteStream{}, _ctx, %{input_caps: stored_caps} = state) do
     native = mk_native!(stored_caps, state.output_caps)
     state = %{state | native: native}
-    {{:ok, caps: {:output, state.output_caps}}, state}
+    {[caps: {:output, state.output_caps}], state}
   end
 
   @impl true
@@ -110,7 +110,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   def handle_caps(:input, %RawAudio{} = caps, _ctx, state) do
     native = mk_native!(caps, state.output_caps)
     state = %{state | native: native, input_caps: caps}
-    {{:ok, caps: {:output, state.output_caps}}, state}
+    {[caps: {:output, state.output_caps}], state}
   end
 
   @impl true
@@ -120,10 +120,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
     case conversion_result do
       {<<>>, queue} ->
-        {:ok, %{state | queue: queue}}
+        {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        {{:ok, buffer: {:output, %Buffer{payload: converted}}}, %{state | queue: queue}}
+        {[buffer: {:output, %Buffer{payload: converted}}], %{state | queue: queue}}
     end
   end
 
@@ -139,17 +139,17 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
     case flush!(state.native) do
       <<>> ->
-        {{:ok, end_of_stream: :output}, %{state | queue: <<>>}}
+        {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
-        {{:ok, buffer: {:output, %Buffer{payload: converted}}, end_of_stream: :output},
+        {[buffer: {:output, %Buffer{payload: converted}, end_of_stream: :output}],
          %{state | queue: <<>>}}
     end
   end
 
   @impl true
   def handle_prepared_to_stopped(_ctx, state) do
-    {:ok, %{state | native: nil}}
+    {[], %{state | native: nil}}
   end
 
   defp mk_native!(
