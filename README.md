@@ -27,29 +27,26 @@ it to 44.1 kHz rate.
 defmodule Resampling.Pipeline do
   use Membrane.Pipeline
 
-  alias Membrane.Element.File
   alias Membrane.FFmpeg.SWResample.Converter
-  alias Membrane.RawAudio
+  alias Membrane.{File, RawAudio}
 
-  @doc false
   @impl true
-  def handle_init(_) do
-    children = [
-      file_src: %File.Source{location: "/tmp/input.raw"},
-      converter: %Converter{
-        input_caps: %RawAudio{channels: 2, sample_format: :s24le, sample_rate: 48_000},
-        output_caps: %RawAudio{channels: 2, sample_format: :f32le, sample_rate: 44_100}
-      },
-      file_sink: %File.Sink{location: "/tmp/output.raw"},
+  def handle_init(_ctx, _opts) do
+    structure = [
+      child(:file_src, %File.Source{location: "/tmp/input.raw"})
+      |> child(:converter, %Converter{
+        input_stream_format: %RawAudio{channels: 2, sample_format: :s24le, sample_rate: 48_000},
+        output_stream_format: %RawAudio{channels: 2, sample_format: :f32le, sample_rate: 44_100}
+      })
+      |> child(:file_sink, %File.Sink{location: "/tmp/output.raw"})
     ]
 
-    links = [
-      link(:file_src)
-      |> to(:converter)
-      |> to(:file_sink)
-    ]
+    {[spec: structure, playback: :playing], nil}
+  end
 
-    {{:ok, spec: %ParentSpec{children: children, links: links}}, %{}}
+  @impl true
+  def handle_element_end_of_stream(:file_sink, _pad, _ctx_, _state) do
+    {[playback: :stopped], nil}
   end
 end
 ```
