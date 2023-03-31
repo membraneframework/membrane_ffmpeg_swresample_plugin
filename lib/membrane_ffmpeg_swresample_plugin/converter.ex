@@ -125,7 +125,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_process(:input, %Buffer{payload: payload}, _ctx, state) do
+  def handle_process(:input, %Buffer{pts: pts, payload: payload}, _ctx, state) do
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
 
@@ -134,7 +134,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        {[buffer: {:output, %Buffer{payload: converted}}], %{state | queue: queue}}
+        {[buffer: {:output, %Buffer{pts: pts, payload: converted}}], %{state | queue: queue}}
     end
   end
 
@@ -153,6 +153,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
+        # TODO: we're generating a buffer that does not have PTS.
         {[buffer: {:output, %Buffer{payload: converted}}, end_of_stream: :output],
          %{state | queue: <<>>}}
     end
