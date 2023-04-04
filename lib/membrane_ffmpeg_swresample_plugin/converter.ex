@@ -126,11 +126,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_process(:input, %Buffer{pts: pts} = buffer, ctx, %{next_pts: nil} = state) do
-    # Sets the initial PTS to either the value of the buffer or 0.
-    handle_process(:input, buffer, ctx, %{state | next_pts: pts || 0})
-  end
-
   def handle_process(:input, %Buffer{payload: payload}, _ctx, %{next_pts: pts} = state) do
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
@@ -140,13 +135,13 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        next_pts = pts + RawAudio.bytes_to_time(byte_size(converted), state.output_stream_format)
-        {[buffer: {:output, %Buffer{pts: pts, payload: converted}}], %{state | queue: queue, next_pts: next_pts}}
+        {buffer, next_pts} = update_pts(%Buffer{payload: converted}, state.output_stream_format, pts)
+        {[buffer: {:output, buffer}], %{state | queue: queue, next_pts: next_pts}}
     end
   end
 
   @impl true
-  def handle_end_of_stream(:input, _ctx, state) do
+  def handle_end_of_stream(:input, _ctx, %{next_pts: pts} = state) do
     dropped_bytes = byte_size(state.queue)
 
     if dropped_bytes > 0 do
@@ -160,9 +155,9 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
-        # TODO: we're generating a buffer that does not have PTS.
-        {[buffer: {:output, %Buffer{payload: converted}}, end_of_stream: :output],
-         %{state | queue: <<>>}}
+        {buffer, next_pts} = update_pts(%Buffer{payload: converted}, state.output_stream_format, pts)
+        {[buffer: {:output, buffer}, end_of_stream: :output],
+         %{state | queue: <<>>, next_pts: next_pts}}
     end
   end
 
@@ -218,5 +213,14 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       {:ok, result} -> result
       {:error, reason} -> raise "Error while flushing converter: #{inspect(reason)}"
     end
+  end
+
+  defp update_pts(buffer, format, nil) do
+    update_pts(buffer, format, 0)
+  end
+
+  defp update_pts(buffer, format, pts) do
+    next_pts = pts + RawAudio.bytes_to_time(byte_size(buffer.payload), format)
+    {%Buffer{buffer | pts: pts}, next_pts}
   end
 end
