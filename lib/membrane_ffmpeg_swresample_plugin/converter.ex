@@ -67,7 +67,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       |> Map.merge(%{
         native: nil,
         queue: <<>>,
-        input_stream_format_provided?: options.input_stream_format != nil
+        input_stream_format_provided?: options.input_stream_format != nil,
+        next_pts: nil
       })
 
     {[], state}
@@ -125,7 +126,12 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_process(:input, %Buffer{pts: pts, payload: payload}, _ctx, state) do
+  def handle_process(:input, %Buffer{pts: pts} = buffer, ctx, %{next_pts: nil} = state) do
+    # Sets the initial PTS to either the value of the buffer or 0.
+    handle_process(:input, buffer, ctx, %{state | next_pts: pts || 0})
+  end
+
+  def handle_process(:input, %Buffer{payload: payload}, _ctx, %{next_pts: pts} = state) do
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
 
@@ -134,7 +140,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        {[buffer: {:output, %Buffer{pts: pts, payload: converted}}], %{state | queue: queue}}
+        next_pts = pts + RawAudio.bytes_to_time(byte_size(converted), state.output_stream_format)
+        {[buffer: {:output, %Buffer{pts: pts, payload: converted}}], %{state | queue: queue, next_pts: next_pts}}
     end
   end
 
