@@ -126,6 +126,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
+  def handle_process(:input, buffer, ctx, %{next_pts: nil} = state) do
+    handle_process(:input, buffer, ctx, %{state | next_pts: buffer.pts})
+  end
+
+  @impl true
   def handle_process(:input, %Buffer{payload: payload}, _ctx, %{next_pts: pts} = state) do
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
