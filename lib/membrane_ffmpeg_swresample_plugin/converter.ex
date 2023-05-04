@@ -121,11 +121,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_playing(_ctx, state) do
-    {[stream_format: {:output, state.output_stream_format}], state}
-  end
-
-  @impl true
   def handle_process(:input, buffer, ctx, %{next_pts: nil} = state) do
     handle_process(:input, buffer, ctx, %{state | next_pts: buffer.pts})
   end
