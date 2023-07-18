@@ -41,18 +41,18 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
   defp deps do
     [
       {:membrane_core, "~> 0.12.3"},
-      {:membrane_raw_audio_format, "~> 0.10.0"},
+      {:membrane_raw_audio_format, "~> 0.11.0"},
+      {:membrane_common_c, "~> 0.15.0"},
       {:bunch, "~> 1.6"},
       {:unifex, "~> 1.1"},
-      {:membrane_common_c, "~> 0.15.0"},
       {:bundlex, "~> 1.0"},
-      # Testing
-      {:mockery, "~> 2.1", runtime: false},
-      {:membrane_file_plugin, "~> 0.14.0"},
       # Development
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:credo, "~> 1.6", only: :dev, runtime: false}
+      {:credo, "~> 1.6", only: :dev, runtime: false},
+      # Testing
+      {:mockery, "~> 2.1", runtime: false, only: :test},
+      {:membrane_file_plugin, "~> 0.14.0", only: :test}
     ]
   end
 
