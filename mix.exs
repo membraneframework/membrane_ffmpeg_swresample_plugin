@@ -51,7 +51,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: :dev, runtime: false},
       # Testing
-      {:mockery, "~> 2.1", runtime: false, only: :test},
+      {:mockery, "~> 2.1"},
       {:membrane_file_plugin, "~> 0.14.0", only: :test}
     ]
   end
