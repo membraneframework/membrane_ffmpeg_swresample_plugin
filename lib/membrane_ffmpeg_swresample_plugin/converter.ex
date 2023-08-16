@@ -143,7 +143,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     dropped_bytes = byte_size(state.queue)
 
     if dropped_bytes > 0 do
-      Membrane.Logger.warn(
+      Membrane.Logger.warning(
         "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
       )
     end
