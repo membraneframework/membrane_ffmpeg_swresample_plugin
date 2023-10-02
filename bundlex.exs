@@ -1,6 +1,21 @@
 defmodule Membrane.FFmpeg.SWResample.BundlexProject do
   use Bundlex.Project
 
+  defp get_ffmpeg() do
+    case Bundlex.get_target() do
+      %{os: "linux"} ->
+        {:precompiled,
+         "https://github.com/membraneframework-precompiled/precompiled_ffmpeg/releases/download/version1/ffmpeg_linux.tar.gz"}
+
+      %{architecture: "x86_64", os: "darwin" <> _rest_of_os_name} ->
+        {:precompiled,
+         "https://github.com/membraneframework-precompiled/precompiled_ffmpeg/releases/download/version1/ffmpeg_macos_intel.tar.gz"}
+
+      _other ->
+        nil
+    end
+  end
+
   def project do
     [
       natives: natives()
@@ -13,7 +28,7 @@ defmodule Membrane.FFmpeg.SWResample.BundlexProject do
         interface: :nif,
         sources: ["converter.c", "converter_lib.c"],
         deps: [membrane_common_c: :membrane, unifex: :unifex],
-        pkg_configs: ["libavutil", "libswresample"],
+        os_deps: [{[get_ffmpeg(), :pkg_config], ["libswresample"]}],
         preprocessor: Unifex
       ]
     ]
