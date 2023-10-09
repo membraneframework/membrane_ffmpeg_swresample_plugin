@@ -45,7 +45,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
       {:bunch, "~> 1.6"},
       {:unifex, "~> 1.1"},
       {:membrane_common_c, "~> 0.15.0"},
-      {:bundlex, github: "membraneframework/bundlex", branch: "precompiled_deps", override: true},
+      {:bundlex, "~> 1.2"},
       # Testing
       {:mockery, "~> 2.1", runtime: false},
       {:membrane_file_plugin, "~> 0.15.0", only: :test},

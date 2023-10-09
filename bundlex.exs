@@ -5,11 +5,15 @@ defmodule Membrane.FFmpeg.SWResample.BundlexProject do
     case Bundlex.get_target() do
       %{os: "linux"} ->
         {:precompiled,
-         "https://github.com/membraneframework-precompiled/precompiled_ffmpeg/releases/download/version1/ffmpeg_linux.tar.gz"}
+         "https://github.com/membraneframework-precompiled/precompiled_ffmpeg/releases/download/latest/ffmpeg_linux.tar.gz"}
 
       %{architecture: "x86_64", os: "darwin" <> _rest_of_os_name} ->
         {:precompiled,
-         "https://github.com/membraneframework-precompiled/precompiled_ffmpeg/releases/download/version1/ffmpeg_macos_intel.tar.gz"}
+         "https://github.com/membraneframework-precompiled/precompiled_ffmpeg/releases/download/latest/ffmpeg_macos_intel.tar.gz"}
+
+      %{architecture: "aarch64", os: "darwin" <> _rest_of_os_name} ->
+        {:precompiled,
+         "https://github.com/membraneframework-precompiled/precompiled_ffmpeg/releases/download/latest/ffmpeg_macos_arm.tar.gz"}
 
       _other ->
         nil
