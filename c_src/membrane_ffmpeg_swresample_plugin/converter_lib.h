@@ -1,4 +1,5 @@
 #include <libswresample/swresample.h>
+#include <libavutil/opt.h>
 #include <unifex/unifex.h>
 
 typedef struct ConverterState

@@ -14,8 +14,8 @@ char *lib_init(ConverterState *state, char from_s24le,
     return "swr_alloc";
   }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
+  // #pragma GCC diagnostic push
+  // #pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
 
   /* set options */
   av_opt_set_int(swr_ctx, "in_channel_layout", src_ch_layout, 0);
@@ -26,7 +26,7 @@ char *lib_init(ConverterState *state, char from_s24le,
   av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", dst_sample_fmt, 0);
   av_opt_set_int(swr_ctx, "dither_method", SWR_DITHER_RECTANGULAR, 0);
 
-#pragma GCC diagnostic pop
+  // #pragma GCC diagnostic pop
 
   if (swr_init(swr_ctx) < 0)
     return "swr_init";
