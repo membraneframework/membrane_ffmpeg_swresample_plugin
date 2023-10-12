@@ -14,9 +14,6 @@ char *lib_init(ConverterState *state, char from_s24le,
     return "swr_alloc";
   }
 
-  // #pragma GCC diagnostic push
-  // #pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
-
   /* set options */
   av_opt_set_int(swr_ctx, "in_channel_layout", src_ch_layout, 0);
   av_opt_set_int(swr_ctx, "in_sample_rate", src_rate, 0);
@@ -26,10 +23,13 @@ char *lib_init(ConverterState *state, char from_s24le,
   av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", dst_sample_fmt, 0);
   av_opt_set_int(swr_ctx, "dither_method", SWR_DITHER_RECTANGULAR, 0);
 
-  // #pragma GCC diagnostic pop
-
   if (swr_init(swr_ctx) < 0)
     return "swr_init";
+
+  AVChannelLayout src_ch_av_layout;
+  AVChannelLayout dst_ch_av_layout;
+  av_channel_layout_from_mask(&src_ch_av_layout, src_ch_layout);
+  av_channel_layout_from_mask(&dst_ch_av_layout, dst_ch_layout);
 
   *state = (ConverterState){
       .swr_ctx = swr_ctx,
@@ -37,8 +37,8 @@ char *lib_init(ConverterState *state, char from_s24le,
       .dst_rate = dst_rate,
       .src_sample_fmt = src_sample_fmt,
       .dst_sample_fmt = dst_sample_fmt,
-      .src_nb_channels = av_get_channel_layout_nb_channels(src_ch_layout),
-      .dst_nb_channels = av_get_channel_layout_nb_channels(dst_ch_layout),
+      .src_nb_channels = src_ch_av_layout.nb_channels,
+      .dst_nb_channels = dst_ch_av_layout.nb_channels,
       .from_s24le = from_s24le};
 
   return NULL;
