@@ -16,14 +16,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   @supported_channels [1, 2]
 
   def_output_pad :output,
-    demand_mode: :auto,
     accepted_format:
       %RawAudio{sample_format: format, channels: channels}
       when format in @supported_sample_format and channels in @supported_channels
 
   def_input_pad :input,
-    demand_mode: :auto,
-    demand_unit: :bytes,
     accepted_format:
       any_of(
         %RawAudio{sample_format: format, channels: channels}
@@ -125,7 +122,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_process(:input, %Buffer{payload: payload}, _ctx, state) do
+  def handle_buffer(:input, %Buffer{payload: payload}, _ctx, state) do
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
 
