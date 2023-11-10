@@ -18,7 +18,7 @@ defmodule Membrane.FFmpeg.SWResample.PipelineTest do
 
     output_path = Path.expand(Path.join(tmp_dir, "output_s16le_stereo_16khz.raw"))
 
-    structure = [
+    spec = [
       child(:source, %Membrane.File.Source{location: fixture_path})
       |> child(:resampler, %Converter{
         input_stream_format: input_stream_format,
@@ -27,11 +27,11 @@ defmodule Membrane.FFmpeg.SWResample.PipelineTest do
       |> child(:sink, %Membrane.File.Sink{location: output_path})
     ]
 
-    pipeline = Testing.Pipeline.start_link_supervised!(structure: structure)
+    pipeline = Testing.Pipeline.start_link_supervised!(spec: spec)
 
     assert_pipeline_setup(pipeline)
     assert_end_of_stream(pipeline, :sink)
-    Testing.Pipeline.terminate(pipeline, blocking?: true)
+    Testing.Pipeline.terminate(pipeline)
 
     assert result = File.read!(output_path)
     assert byte_size(result) == RawAudio.time_to_bytes(input_time, output_stream_format)
