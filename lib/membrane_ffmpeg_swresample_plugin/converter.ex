@@ -136,6 +136,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
+  def handle_end_of_stream(:input, _ctx, %{native: nil} = state) do
+    {[end_of_stream: :output], state}
+  end
+
   def handle_end_of_stream(:input, _ctx, state) do
     dropped_bytes = byte_size(state.queue)
 
