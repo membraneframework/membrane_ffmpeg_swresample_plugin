@@ -123,6 +123,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
   @impl true
   def handle_buffer(:input, %Buffer{payload: payload, pts: pts}, _ctx, state) do
+    state =
+      state |> Map.merge(%{
+        current_pts: pts,
+      })
+
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
 
@@ -154,7 +159,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
-        {[buffer: {:output, %Buffer{payload: converted}}, end_of_stream: :output],
+        {[buffer: {:output, %Buffer{payload: converted, pts: state.current_pts}}, end_of_stream: :output],
          %{state | queue: <<>>}}
     end
   end

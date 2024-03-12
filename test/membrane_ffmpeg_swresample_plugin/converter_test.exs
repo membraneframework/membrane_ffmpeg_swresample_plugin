@@ -27,7 +27,8 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
         output_stream_format: @u8_format,
         frames_per_buffer: 2048,
         native: nil,
-        queue: <<>>
+        queue: <<>>,
+        current_pts: nil
       }
     }
   end
