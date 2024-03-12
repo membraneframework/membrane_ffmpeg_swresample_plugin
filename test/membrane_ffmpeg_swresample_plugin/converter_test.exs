@@ -178,5 +178,23 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}]
       assert new_state == %{state | queue: <<0::2*8>>}
     end
+
+    test "timestamps forward test", %{state: initial_state} do
+      state = %{
+        initial_state
+        | queue: <<250, 250, 0>>,
+          native: :mock_handle,
+          input_stream_format: @s16le_format
+      }
+
+      payload = <<0::7*8>>
+      pts = 1000
+      buffer = %Membrane.Buffer{payload: payload, pts: pts}
+      result = <<250, 0, 0, 0>>
+      mock(@native, [convert: 2], {:ok, result})
+
+      assert {[buffer: {:output, %Membrane.Buffer{pts: ^pts}}], _state} =
+               @module.handle_buffer(:input, buffer, nil, state)
+    end
   end
 end
