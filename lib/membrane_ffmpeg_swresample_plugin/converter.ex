@@ -64,7 +64,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       |> Map.merge(%{
         native: nil,
         queue: <<>>,
-        input_stream_format_provided?: options.input_stream_format != nil
+        input_stream_format_provided?: options.input_stream_format != nil,
+        pts_queue: []
       })
 
     {[], state}
@@ -122,11 +123,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_buffer(:input, %Buffer{payload: payload, pts: pts}, _ctx, state) do
-    state =
-      state
-      |> Map.put(:current_pts, pts)
-
+  def handle_buffer(:input, %Buffer{payload: payload, pts: input_pts}, _ctx, state) do
+    state = Map.update!(state, :pts_queue, fn pts_queue ->
+      pts_queue ++ [{input_pts, RawAudio.frame_size(state.output_stream_format)}]
+    end)
+    # IO.inspect(state.pts_queue, label: "pts_queue")
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
 
@@ -135,7 +136,14 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        {[buffer: {:output, %Buffer{payload: converted, pts: pts}}], %{state | queue: queue}}
+        {[{popped_pts, popped_size}], _rest} = Enum.split(state.pts_queue, 1)
+        state = Map.update!(state, :pts_queue, fn pts_queue ->
+          {_popped, rest} = Enum.split(pts_queue, 1)
+          rest
+        end)
+        # IO.inspect("converted: #{RawAudio.frame_size(state.output_stream_format )} #{byte_size(converted)}")
+        IO.inspect(popped_pts, label: "popped_pts")
+        {[buffer: {:output, %Buffer{payload: converted, pts: popped_pts}}], %{state | queue: queue}}
     end
   end
 
@@ -159,7 +167,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
       converted ->
         {[
-           buffer: {:output, %Buffer{payload: converted, pts: state.current_pts}},
+           buffer: {:output, %Buffer{payload: converted}},
            end_of_stream: :output
          ], %{state | queue: <<>>}}
     end
