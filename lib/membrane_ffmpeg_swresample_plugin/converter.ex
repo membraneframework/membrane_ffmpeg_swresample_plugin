@@ -136,7 +136,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        {[{popped_pts, popped_size}], _rest} = Enum.split(state.pts_queue, 1)
+        {[{popped_pts, _popped_size}], _rest} = Enum.split(state.pts_queue, 1)
         state = Map.update!(state, :pts_queue, fn pts_queue ->
           {_popped, rest} = Enum.split(pts_queue, 1)
           rest
