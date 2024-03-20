@@ -28,7 +28,6 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
         frames_per_buffer: 2048,
         native: nil,
         queue: <<>>,
-        current_pts: nil,
         pts_queue: []
       }
     }

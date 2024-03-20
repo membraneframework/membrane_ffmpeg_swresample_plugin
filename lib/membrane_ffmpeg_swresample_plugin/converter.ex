@@ -65,7 +65,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         native: nil,
         queue: <<>>,
         input_stream_format_provided?: options.input_stream_format != nil,
-        pts_queue: []
+        pts_queue: [],
       })
 
     {[], state}
@@ -124,10 +124,14 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
   @impl true
   def handle_buffer(:input, %Buffer{payload: payload, pts: input_pts}, _ctx, state) do
+    ratio = RawAudio.frame_size(state.output_stream_format)/RawAudio.frame_size(state.input_stream_format)
+
+    expected_output_frames_count = byte_size(payload)/RawAudio.frame_size(state.input_stream_format) * ratio
+
     state = Map.update!(state, :pts_queue, fn pts_queue ->
-      pts_queue ++ [{input_pts, RawAudio.frame_size(state.output_stream_format)}]
+      pts_queue ++ [{input_pts, expected_output_frames_count}]
     end)
-    # IO.inspect(state.pts_queue, label: "pts_queue")
+
     conversion_result =
       convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
 
@@ -136,14 +140,30 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        {[{popped_pts, _popped_size}], _rest} = Enum.split(state.pts_queue, 1)
-        state = Map.update!(state, :pts_queue, fn pts_queue ->
-          {_popped, rest} = Enum.split(pts_queue, 1)
-          rest
+        converted_frames_count = byte_size(converted)/RawAudio.frame_size(state.output_stream_format)
+
+        {[{_out_pts, expected_frames}], _rest} = Enum.split(state.pts_queue, 1)
+
+        {state, out_pts} = update_pts_queue(state, converted_frames_count)
+
+        IO.puts("expected_output_frames_count: #{expected_frames} converted_frames_count: #{converted_frames_count} out_pts: #{out_pts}")
+
+        {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
+    end
+  end
+
+  defp update_pts_queue(state, converted_frames_count) do
+    {[{out_pts, expected_frames}], rest} = Enum.split(state.pts_queue, 1)
+    cond do
+      converted_frames_count < expected_frames ->
+        state = Map.update!(state, :pts_queue, fn _pts_queue ->
+          [{out_pts, expected_frames - converted_frames_count}] ++ rest
         end)
-        # IO.inspect("converted: #{RawAudio.frame_size(state.output_stream_format )} #{byte_size(converted)}")
-        IO.inspect(popped_pts, label: "popped_pts")
-        {[buffer: {:output, %Buffer{payload: converted, pts: popped_pts}}], %{state | queue: queue}}
+        {state, out_pts}
+
+      converted_frames_count >= expected_frames ->
+        {%{state | pts_queue: rest}, out_pts}
+
     end
   end
 
@@ -153,6 +173,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   def handle_end_of_stream(:input, _ctx, state) do
+
     dropped_bytes = byte_size(state.queue)
 
     if dropped_bytes > 0 do
@@ -166,8 +187,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
+        converted_frames_count = byte_size(converted)/RawAudio.frame_size(state.output_stream_format)
+        {state, out_pts} = update_pts_queue(state, converted_frames_count)
+        IO.puts("end_of_stream out_pts: #{out_pts}")
         {[
-           buffer: {:output, %Buffer{payload: converted}},
+           buffer: {:output, %Buffer{payload: converted, pts: out_pts}},
            end_of_stream: :output
          ], %{state | queue: <<>>}}
     end
