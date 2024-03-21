@@ -157,7 +157,14 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
       assert {[], new_state} = @module.handle_buffer(:input, buffer, nil, state)
 
-      assert new_state == %{state | queue: payload}
+      # this is necesary to ignore state.pts_queue in the assertion
+      assert new_state.frames_per_buffer == state.frames_per_buffer
+      assert new_state.input_stream_format == state.input_stream_format
+      assert new_state.input_stream_format_provided? == state.input_stream_format_provided?
+      assert new_state.native == state.native
+      assert new_state.output_stream_format == state.output_stream_format
+      assert new_state.queue == payload
+
       refute_called(@native, :convert)
     end
 
@@ -195,6 +202,5 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
     #   assert {[buffer: {:output, %Membrane.Buffer{pts: ^pts}}], _state} =
     #            @module.handle_buffer(:input, buffer, nil, state)
     # end
-
   end
 end

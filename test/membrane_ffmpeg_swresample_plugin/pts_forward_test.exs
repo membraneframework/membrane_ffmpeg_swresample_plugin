@@ -12,7 +12,8 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     # input_stream_format = %RawAudio{sample_format: :u8, sample_rate: 8_000, channels: 1}
     output_stream_format = %RawAudio{sample_format: :s32le, sample_rate: 32_000, channels: 2}
 
-    fixture_path = Path.expand(Path.join(__DIR__, "/../fixtures/input_s16le_stereo_16khz.raw")) # 32 frames * 2048 bytes
+    # 32 frames * 2048 bytes
+    fixture_path = Path.expand(Path.join(__DIR__, "/../fixtures/input_s16le_stereo_16khz.raw"))
     # fixture_path = Path.expand(Path.join(__DIR__, "/../fixtures/input_u8_mono_8khz.raw"))
 
     spec = [
@@ -38,12 +39,13 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
 
   defp buffers_from_file(path) do
     binary = File.read!(path)
+
     split_binary(binary)
     |> Enum.with_index()
     |> Enum.map(fn {payload, index} ->
       %Membrane.Buffer{
         payload: payload,
-        pts: index * 31250000
+        pts: index * 31_250_000
       }
     end)
   end
