@@ -26,11 +26,13 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     pipeline = Testing.Pipeline.start_link_supervised!(spec: spec)
     assert_start_of_stream(pipeline, :sink)
     assert_sink_buffer(pipeline, :sink, _buffer)
+
     Enum.each(0..30, fn index ->
       assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: out_pts})
-      assert out_pts == index * 31250000
+      assert out_pts == index * 31_250_000
     end)
-    assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: 937500000})
+
+    assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: 937_500_000})
 
     assert_end_of_stream(pipeline, :sink)
     Testing.Pipeline.terminate(pipeline)

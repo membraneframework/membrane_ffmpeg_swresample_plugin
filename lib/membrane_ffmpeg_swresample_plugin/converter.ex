@@ -128,7 +128,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     output_frame_size = RawAudio.frame_size(state.output_stream_format)
     ratio = output_frame_size / input_frame_size
 
-    expected_output_frames_count = byte_size(payload) / input_frame_size * ratio
+    expected_output_frames_count = (byte_size(payload) / input_frame_size * ratio) |> trunc()
 
     state =
       Map.update!(state, :pts_queue, fn pts_queue ->
@@ -237,17 +237,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   defp update_pts_queue(state, converted_frames_count) do
     {[{out_pts, expected_frames}], rest} = Enum.split(state.pts_queue, 1)
 
-    cond do
-      converted_frames_count < expected_frames ->
-        state =
-          Map.update!(state, :pts_queue, fn _pts_queue ->
-            [{out_pts, expected_frames - converted_frames_count}] ++ rest
-          end)
-
-        {state, out_pts}
-
-      converted_frames_count >= expected_frames ->
-        {%{state | pts_queue: rest}, out_pts}
+    if converted_frames_count < expected_frames do
+      {%{state | pts_queue: [{out_pts, expected_frames - converted_frames_count}] ++ rest},
+       out_pts}
+    else
+      {%{state | pts_queue: rest}, out_pts}
     end
   end
 end
