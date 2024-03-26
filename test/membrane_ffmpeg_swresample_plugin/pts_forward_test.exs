@@ -12,7 +12,7 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     output_stream_format = %RawAudio{sample_format: :s32le, sample_rate: 32_000, channels: 2}
 
     # 32 frames * 2048 bytes
-    fixture_path = Path.expand(Path.join(__DIR__, "/../fixtures/input_s16le_stereo_16khz.raw"))
+    fixture_path = "test/fixtures/input_s16le_stereo_16khz.raw"
 
     spec = [
       child(:source, %Membrane.Testing.Source{output: buffers_from_file(fixture_path)})
@@ -27,9 +27,11 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     assert_start_of_stream(pipeline, :sink)
     assert_sink_buffer(pipeline, :sink, _buffer)
 
+    pts_multiplier = 31_250_000
+
     Enum.each(0..30, fn index ->
       assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: out_pts})
-      assert out_pts == index * 31_250_000
+      assert out_pts == index * pts_multiplier
     end)
 
     assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: 937_500_000})

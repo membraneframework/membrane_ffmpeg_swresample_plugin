@@ -128,7 +128,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     output_frame_size = RawAudio.frame_size(state.output_stream_format)
     ratio = output_frame_size / input_frame_size
 
-    expected_output_frames_count = (byte_size(payload) / input_frame_size * ratio) |> trunc()
+    expected_output_frames_count = (byte_size(payload) / input_frame_size * ratio) |> round()
 
     state =
       Map.update!(state, :pts_queue, fn pts_queue ->
