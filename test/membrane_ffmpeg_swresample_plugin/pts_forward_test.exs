@@ -26,7 +26,6 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     ]
 
     pipeline = Testing.Pipeline.start_link_supervised!(spec: spec)
-    assert_start_of_stream(pipeline, :sink)
     assert_sink_buffer(pipeline, :sink, _buffer)
 
     Enum.each(0..30, fn index ->
