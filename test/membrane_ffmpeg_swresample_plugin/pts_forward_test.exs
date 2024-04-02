@@ -7,6 +7,8 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
   alias Membrane.FFmpeg.SWResample.Converter
   alias Membrane.{RawAudio, Testing}
 
+  @pts_multiplier 31_250_000
+
   test "pts forward test" do
     input_stream_format = %RawAudio{sample_format: :s16le, sample_rate: 16_000, channels: 2}
     output_stream_format = %RawAudio{sample_format: :s32le, sample_rate: 32_000, channels: 2}
@@ -27,14 +29,13 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     assert_start_of_stream(pipeline, :sink)
     assert_sink_buffer(pipeline, :sink, _buffer)
 
-    pts_multiplier = 31_250_000
-
     Enum.each(0..30, fn index ->
       assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: out_pts})
-      assert out_pts == index * pts_multiplier
+      assert out_pts == index * @pts_multiplier
     end)
 
-    assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: 937_500_000})
+    assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: last_out_pts})
+    assert last_out_pts == 30 * @pts_multiplier
 
     assert_end_of_stream(pipeline, :sink)
     Testing.Pipeline.terminate(pipeline)
@@ -48,7 +49,7 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     |> Enum.map(fn {payload, index} ->
       %Membrane.Buffer{
         payload: payload,
-        pts: index * 31_250_000
+        pts: index * @pts_multiplier
       }
     end)
   end
