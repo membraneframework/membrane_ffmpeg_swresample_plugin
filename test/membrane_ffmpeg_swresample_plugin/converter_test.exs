@@ -27,7 +27,8 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
         output_stream_format: @u8_format,
         frames_per_buffer: 2048,
         native: nil,
-        queue: <<>>
+        queue: <<>>,
+        pts_queue: []
       }
     }
   end
@@ -156,7 +157,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
       assert {[], new_state} = @module.handle_buffer(:input, buffer, nil, state)
 
-      assert new_state == %{state | queue: payload}
+      assert %{new_state | pts_queue: nil} == %{state | queue: payload, pts_queue: nil}
       refute_called(@native, :convert)
     end
 
