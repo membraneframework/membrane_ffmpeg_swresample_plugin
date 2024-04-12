@@ -65,7 +65,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         native: nil,
         queue: <<>>,
         input_stream_format_provided?: options.input_stream_format != nil,
-        pts_queue: []
+        next_pts: nil
       })
 
     {[], state}
@@ -118,17 +118,13 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
-  def handle_buffer(:input, %Buffer{payload: payload, pts: input_pts}, _ctx, state) do
+  def handle_buffer(:input, buffer, ctx, state = %{next_pts: nil}) do
+    pts = buffer.pts || 0
+    handle_buffer(:input, buffer, ctx, Map.put(state, :next_pts, pts))
+  end
+
+  def handle_buffer(:input, %Buffer{payload: payload}, _ctx, state) do
     input_frame_size = RawAudio.frame_size(state.input_stream_format)
-    output_frame_size = RawAudio.frame_size(state.output_stream_format)
-
-    expected_output_frames_count =
-      (byte_size(payload) * output_frame_size / (input_frame_size * input_frame_size)) |> round()
-
-    state =
-      Map.update!(state, :pts_queue, fn pts_queue ->
-        pts_queue ++ [{input_pts, expected_output_frames_count}]
-      end)
 
     conversion_result =
       convert!(state.native, input_frame_size, payload, state.queue)
@@ -138,9 +134,12 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        {state, out_pts} = update_pts_queue(state, byte_size(converted) / output_frame_size)
+        next_pts =
+          state.next_pts +
+            RawAudio.bytes_to_time(byte_size(converted), state.output_stream_format)
 
-        {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
+        {[buffer: {:output, %Buffer{payload: converted, pts: state.next_pts}}],
+         %{state | next_pts: next_pts, queue: queue}}
     end
   end
 
@@ -163,13 +162,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
-        converted_frames_count =
-          byte_size(converted) / RawAudio.frame_size(state.output_stream_format)
-
-        {state, out_pts} = update_pts_queue(state, converted_frames_count)
-
         {[
-           buffer: {:output, %Buffer{payload: converted, pts: out_pts}},
+           buffer: {:output, %Buffer{payload: converted, pts: state.next_pts}},
            end_of_stream: :output
          ], %{state | queue: <<>>}}
     end
@@ -226,17 +220,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     case mockable(Native).convert("", native) do
       {:ok, result} -> result
       {:error, reason} -> raise "Error while flushing converter: #{inspect(reason)}"
-    end
-  end
-
-  defp update_pts_queue(state, converted_frames_count) do
-    [{out_pts, expected_frames} | rest] = state.pts_queue
-
-    if converted_frames_count < expected_frames do
-      {%{state | pts_queue: [{out_pts, expected_frames - converted_frames_count}] ++ rest},
-       out_pts}
-    else
-      {%{state | pts_queue: rest}, out_pts}
     end
   end
 end
