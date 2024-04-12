@@ -1,7 +1,8 @@
 #pragma once
 
-#include <erl_nif.h>
 #include <membrane/membrane.h>
+
+#include <erl_nif.h>
 #include <stdio.h>
 
 #include "converter_lib.h"

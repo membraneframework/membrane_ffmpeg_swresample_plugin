@@ -13,7 +13,13 @@ defmodule Membrane.FFmpeg.SWResample.BundlexProject do
         interface: :nif,
         sources: ["converter.c", "converter_lib.c"],
         deps: [membrane_common_c: :membrane, unifex: :unifex],
-        pkg_configs: ["libavutil", "libswresample"],
+        os_deps: [
+          ffmpeg: [
+            {:precompiled, Membrane.PrecompiledDependencyProvider.get_dependency_url(:ffmpeg),
+             ["libswresample", "libavutil"]},
+            {:pkg_config, ["libswresample", "libavutil"]}
+          ]
+        ],
         preprocessor: Unifex
       ]
     ]

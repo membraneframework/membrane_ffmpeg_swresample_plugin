@@ -27,7 +27,8 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
         output_stream_format: @u8_format,
         frames_per_buffer: 2048,
         native: nil,
-        queue: <<>>
+        queue: <<>>,
+        pts_queue: []
       }
     }
   end
@@ -147,16 +148,16 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
     end
   end
 
-  describe "handle_process/4 should" do
+  describe "handle_buffer/4 should" do
     test "store payload in queue until there are at least 2 frames", %{state: initial_state} do
       state = %{initial_state | native: :mock_handle, input_stream_format: @s16le_format}
       payload = <<0::3*8>>
       buffer = %Membrane.Buffer{payload: payload}
       mock(@native, [convert: 2], {:error, :reason})
 
-      assert {[], new_state} = @module.handle_process(:input, buffer, nil, state)
+      assert {[], new_state} = @module.handle_buffer(:input, buffer, nil, state)
 
-      assert new_state == %{state | queue: payload}
+      assert %{new_state | pts_queue: nil} == %{state | queue: payload, pts_queue: nil}
       refute_called(@native, :convert)
     end
 
@@ -173,7 +174,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       result = <<250, 0, 0, 0>>
       mock(@native, [convert: 2], {:ok, result})
 
-      assert {actions, new_state} = @module.handle_process(:input, buffer, nil, state)
+      assert {actions, new_state} = @module.handle_buffer(:input, buffer, nil, state)
 
       assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}]
       assert new_state == %{state | queue: <<0::2*8>>}

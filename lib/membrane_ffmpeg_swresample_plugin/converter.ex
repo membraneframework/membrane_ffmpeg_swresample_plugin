@@ -16,14 +16,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   @supported_channels [1, 2]
 
   def_output_pad :output,
-    demand_mode: :auto,
     accepted_format:
       %RawAudio{sample_format: format, channels: channels}
       when format in @supported_sample_format and channels in @supported_channels
 
   def_input_pad :input,
-    demand_mode: :auto,
-    demand_unit: :bytes,
     accepted_format:
       any_of(
         %RawAudio{sample_format: format, channels: channels}
@@ -68,7 +65,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         native: nil,
         queue: <<>>,
         input_stream_format_provided?: options.input_stream_format != nil,
+<<<<<<< HEAD
         next_pts: nil
+=======
+        pts_queue: []
+>>>>>>> upstream/master
       })
 
     {[], state}
@@ -126,26 +127,55 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   @impl true
+<<<<<<< HEAD
   def handle_process(:input, %Buffer{payload: payload}, _ctx, %{next_pts: pts} = state) do
+=======
+  def handle_buffer(:input, %Buffer{payload: payload, pts: input_pts}, _ctx, state) do
+    input_frame_size = RawAudio.frame_size(state.input_stream_format)
+    output_frame_size = RawAudio.frame_size(state.output_stream_format)
+
+    expected_output_frames_count =
+      (byte_size(payload) * output_frame_size / (input_frame_size * input_frame_size)) |> round()
+
+    state =
+      Map.update!(state, :pts_queue, fn pts_queue ->
+        pts_queue ++ [{input_pts, expected_output_frames_count}]
+      end)
+
+>>>>>>> upstream/master
     conversion_result =
-      convert!(state.native, RawAudio.frame_size(state.input_stream_format), payload, state.queue)
+      convert!(state.native, input_frame_size, payload, state.queue)
 
     case conversion_result do
       {<<>>, queue} ->
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
+<<<<<<< HEAD
         {buffer, next_pts} = update_pts(%Buffer{payload: converted}, state.output_stream_format, pts)
         {[buffer: {:output, buffer}], %{state | queue: queue, next_pts: next_pts}}
+=======
+        {state, out_pts} = update_pts_queue(state, byte_size(converted) / output_frame_size)
+
+        {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
+>>>>>>> upstream/master
     end
   end
 
   @impl true
+<<<<<<< HEAD
   def handle_end_of_stream(:input, _ctx, %{next_pts: pts} = state) do
+=======
+  def handle_end_of_stream(:input, _ctx, %{native: nil} = state) do
+    {[end_of_stream: :output], state}
+  end
+
+  def handle_end_of_stream(:input, _ctx, state) do
+>>>>>>> upstream/master
     dropped_bytes = byte_size(state.queue)
 
     if dropped_bytes > 0 do
-      Membrane.Logger.warn(
+      Membrane.Logger.warning(
         "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
       )
     end
@@ -155,9 +185,21 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
+<<<<<<< HEAD
         {buffer, next_pts} = update_pts(%Buffer{payload: converted}, state.output_stream_format, pts)
         {[buffer: {:output, buffer}, end_of_stream: :output],
          %{state | queue: <<>>, next_pts: next_pts}}
+=======
+        converted_frames_count =
+          byte_size(converted) / RawAudio.frame_size(state.output_stream_format)
+
+        {state, out_pts} = update_pts_queue(state, converted_frames_count)
+
+        {[
+           buffer: {:output, %Buffer{payload: converted, pts: out_pts}},
+           end_of_stream: :output
+         ], %{state | queue: <<>>}}
+>>>>>>> upstream/master
     end
   end
 
@@ -215,6 +257,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     end
   end
 
+<<<<<<< HEAD
   defp update_pts(buffer, format, nil) do
     update_pts(buffer, format, 0)
   end
@@ -222,5 +265,16 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   defp update_pts(buffer, format, pts) do
     next_pts = pts + RawAudio.bytes_to_time(byte_size(buffer.payload), format)
     {%Buffer{buffer | pts: pts}, next_pts}
+=======
+  defp update_pts_queue(state, converted_frames_count) do
+    [{out_pts, expected_frames} | rest] = state.pts_queue
+
+    if converted_frames_count < expected_frames do
+      {%{state | pts_queue: [{out_pts, expected_frames - converted_frames_count}] ++ rest},
+       out_pts}
+    else
+      {%{state | pts_queue: rest}, out_pts}
+    end
+>>>>>>> upstream/master
   end
 end

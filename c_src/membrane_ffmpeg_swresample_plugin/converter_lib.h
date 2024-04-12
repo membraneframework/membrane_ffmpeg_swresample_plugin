@@ -1,10 +1,10 @@
-#include <libavutil/channel_layout.h>
-#include <libavutil/opt.h>
-#include <libavutil/samplefmt.h>
 #include <libswresample/swresample.h>
+#include <libavutil/opt.h>
+#include <libavutil/channel_layout.h>
 #include <unifex/unifex.h>
 
-typedef struct ConverterState {
+typedef struct ConverterState
+{
   struct SwrContext *swr_ctx;
   enum AVSampleFormat src_sample_fmt, dst_sample_fmt;
   int src_rate, dst_rate;
