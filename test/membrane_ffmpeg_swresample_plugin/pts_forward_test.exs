@@ -5,7 +5,7 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
   import Membrane.Testing.Assertions
 
   alias Membrane.FFmpeg.SWResample.Converter
-  alias Membrane.{RawAudio, MP3,Testing}
+  alias Membrane.{RawAudio, MP3, Testing}
 
   @pts_multiplier 31_250_000
 
@@ -30,6 +30,7 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     output_stream_format = %RawAudio{sample_format: :s32le, sample_rate: 32_000, channels: 2}
     # 32 frames * 2048 bytes
     path = "test/fixtures/input_s16le_stereo_16khz.raw"
+
     spec = [
       child(:source, %Membrane.Testing.Source{output: buffers_from_file(path)})
       |> child(:resampler, %Converter{
