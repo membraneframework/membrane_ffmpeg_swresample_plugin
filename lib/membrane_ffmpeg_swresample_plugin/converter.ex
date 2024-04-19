@@ -235,13 +235,16 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   defp update_pts_queue(state, converted_frames_count) do
-    [{out_pts, expected_frames} | rest] = state.pts_queue
-
-    if converted_frames_count < expected_frames do
-      {%{state | pts_queue: [{out_pts, expected_frames - converted_frames_count}] ++ rest},
-       out_pts}
-    else
-      {%{state | pts_queue: rest}, out_pts}
+    case state.pts_queue do
+      [{out_pts, expected_frames} | rest] ->
+        if converted_frames_count < expected_frames do
+          {%{state | pts_queue: [{out_pts, expected_frames - converted_frames_count}] ++ rest},
+          out_pts}
+        else
+          {%{state | pts_queue: rest}, out_pts}
+        end
+      [] ->
+        {state, nil}
     end
   end
 end
