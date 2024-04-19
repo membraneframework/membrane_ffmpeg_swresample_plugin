@@ -170,7 +170,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       converted ->
         converted_frames_count =
           byte_size(converted) / RawAudio.frame_size(state.output_stream_format)
-
         {state, out_pts} = update_pts_queue(state, converted_frames_count)
 
         {[
