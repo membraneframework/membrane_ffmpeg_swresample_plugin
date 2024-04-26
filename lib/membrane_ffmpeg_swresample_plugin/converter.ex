@@ -125,14 +125,15 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   @impl true
   def handle_buffer(:input, %Buffer{payload: payload, pts: input_pts}, _ctx, state) do
     input_frame_size = RawAudio.frame_size(state.input_stream_format)
-    output_frame_size = RawAudio.frame_size(state.output_stream_format)
 
-    expected_output_frames_count =
-      (byte_size(payload) * output_frame_size / (input_frame_size * input_frame_size)) |> round()
+    expected_output_frames =
+      (byte_size(payload) * state.output_stream_format.sample_rate /
+         (input_frame_size * state.input_stream_format.sample_rate))
+      |> round()
 
     state =
       Map.update!(state, :pts_queue, fn pts_queue ->
-        pts_queue ++ [{input_pts, expected_output_frames_count}]
+        pts_queue ++ [{input_pts, expected_output_frames}]
       end)
 
     conversion_result =
@@ -143,7 +144,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        {state, out_pts} = update_pts_queue(state, byte_size(converted) / output_frame_size)
+        converted_frames_count =
+          byte_size(converted) / RawAudio.frame_size(state.output_stream_format)
+
+        {state, out_pts} = update_pts_queue(state, converted_frames_count)
 
         {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
     end
@@ -235,17 +239,13 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   defp update_pts_queue(state, converted_frames_count) do
-    case state.pts_queue do
-      [{out_pts, expected_frames} | rest] ->
-        if converted_frames_count < expected_frames do
-          {%{state | pts_queue: [{out_pts, expected_frames - converted_frames_count}] ++ rest},
-           out_pts}
-        else
-          {%{state | pts_queue: rest}, out_pts}
-        end
+    [{out_pts, expected_frames} | rest] = state.pts_queue
 
-      [] ->
-        {state, nil}
+    if converted_frames_count < expected_frames do
+      {%{state | pts_queue: [{out_pts, expected_frames - converted_frames_count}] ++ rest},
+       out_pts}
+    else
+      {%{state | pts_queue: rest}, out_pts}
     end
   end
 end
