@@ -247,29 +247,33 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       converted_frames > expected_frames ->
         remaining_frames_count = converted_frames - expected_frames
 
-        {mapped, _acc} =
-          rest
-          |> Enum.flat_map_reduce(remaining_frames_count, fn x, acc ->
-            {pts, frames} = x
-
-            cond do
-              acc == 0 ->
-                {[{pts, frames}], 0}
-
-              acc < frames ->
-                {[{pts, frames - acc}], 0}
-
-              true ->
-                {[nil], acc - frames}
-            end
-          end)
-
-        filtered = mapped |> Enum.reject(fn x -> x == nil end)
+        filtered = filter_pts_queue(rest, remaining_frames_count)
 
         {%{state | pts_queue: filtered}, out_pts}
 
       true ->
         {%{state | pts_queue: rest}, out_pts}
     end
+  end
+
+  defp filter_pts_queue(pts_queue, remaining_frames_count) do
+    {mapped, _acc} =
+      pts_queue
+      |> Enum.flat_map_reduce(remaining_frames_count, fn x, acc ->
+        {pts, frames} = x
+
+        cond do
+          acc == 0 ->
+            {[{pts, frames}], 0}
+
+          acc < frames ->
+            {[{pts, frames - acc}], 0}
+
+          true ->
+            {[nil], acc - frames}
+        end
+      end)
+
+    mapped |> Enum.reject(fn x -> x == nil end)
   end
 end
