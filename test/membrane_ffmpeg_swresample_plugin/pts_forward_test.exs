@@ -41,7 +41,7 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     ]
 
     pipeline = Testing.Pipeline.start_link_supervised!(spec: spec)
-    # converted buffers some data and first released buffers are a bit smaller than input data,
+    # converter buffers some data and first released buffers are a bit smaller than input data,
     # that's why we expect first 2 to have the same pts == 0
     assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: out_pts})
     assert out_pts == 0

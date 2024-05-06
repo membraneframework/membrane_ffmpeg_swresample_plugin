@@ -65,9 +65,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         native: nil,
         queue: <<>>,
         input_stream_format_provided?: options.input_stream_format != nil,
-        pts_queue: [],
-        total_expected: 0,
-        total_converted: 0
+        pts_queue: []
       })
 
     {[], state}
@@ -126,21 +124,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
   @impl true
   def handle_buffer(:input, %Buffer{payload: payload, pts: input_pts}, _ctx, state) do
-    IO.puts("---- Handle Buffer ----")
     input_frame_size = RawAudio.frame_size(state.input_stream_format)
 
-    expected_output_frames =
-      (byte_size(payload) * state.output_stream_format.sample_rate /
-         (input_frame_size * state.input_stream_format.sample_rate))
-      |> IO.inspect(label: "raw") |> round() |> trunc()
-    IO.inspect(expected_output_frames, label: "expected_output_frames")
-    state =
-      Map.update!(state, :total_expected, fn total_expected ->
-        total_expected + expected_output_frames
-      end)
     state =
       Map.update!(state, :pts_queue, fn pts_queue ->
-        pts_queue ++ [{input_pts, expected_output_frames}]
+        pts_queue ++ [{input_pts, byte_size(payload) * state.output_stream_format.sample_rate}]
       end)
 
     conversion_result =
@@ -150,15 +138,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       {<<>>, queue} ->
         {[], %{state | queue: queue}}
 
-      # here I assume that it's impossible to get not integer number of converted frames
       {converted, queue} ->
         converted_frames =
-          byte_size(converted) / RawAudio.frame_size(state.output_stream_format) |> trunc()
-        IO.inspect(converted_frames, label: "converted_frames")
-        state =
-          Map.update!(state, :total_converted, fn total_converted ->
-            total_converted + converted_frames
-          end)
+          byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
+            (input_frame_size * state.input_stream_format.sample_rate)
+
         {state, out_pts} = update_pts_queue(state, converted_frames)
 
         {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
@@ -171,9 +155,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   def handle_end_of_stream(:input, _ctx, state) do
-    IO.puts("---- Handle End Of Stream ----")
-
-
     dropped_bytes = byte_size(state.queue)
 
     if dropped_bytes > 0 do
@@ -186,12 +167,13 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       <<>> ->
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
-      # here I assume that it's impossible to get not integer number of converted frames
       converted ->
+        input_frame_size = RawAudio.frame_size(state.input_stream_format)
+
         converted_frames =
-          byte_size(converted) / RawAudio.frame_size(state.output_stream_format) |> trunc()
-        # IO.inspect(state.pts_queue, label: "state.pts_queue EOS")
-        IO.inspect("total expected #{state.total_expected} total converted #{state.total_converted + converted_frames}")
+          byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
+            (input_frame_size * state.input_stream_format.sample_rate)
+
         {state, out_pts} = update_pts_queue(state, converted_frames)
 
         {[
@@ -256,34 +238,36 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   defp update_pts_queue(state, converted_frames) do
-    # IO.inspect(converted_frames, label: "converted_frames")
-
     [{out_pts, expected_frames} | rest] = state.pts_queue
-    # IO.inspect("converted_frames #{converted_frames} expected_frames #{expected_frames}")
-    # IO.inspect(state.pts_queue)
 
     cond do
       converted_frames < expected_frames ->
-        {%{state | pts_queue: [{out_pts, expected_frames - converted_frames}] ++ rest},
-         out_pts}
+        {%{state | pts_queue: [{out_pts, expected_frames - converted_frames}] ++ rest}, out_pts}
+
       converted_frames > expected_frames ->
         remaining_frames_count = converted_frames - expected_frames
-        {mapped, _acc} = rest |> Enum.flat_map_reduce(remaining_frames_count, fn x, acc ->
-          {pts, frames} = x
-          # IO.inspect("pts #{pts} frames #{frames} acc #{acc}")
-          cond do
-            acc == 0 ->
-              {[{pts, frames}], 0}
-            acc < frames ->
-              {[{pts, frames - acc}], 0}
-            true ->
-              {[nil], acc - frames}
-          end
-        end)
+
+        {mapped, _acc} =
+          rest
+          |> Enum.flat_map_reduce(remaining_frames_count, fn x, acc ->
+            {pts, frames} = x
+
+            cond do
+              acc == 0 ->
+                {[{pts, frames}], 0}
+
+              acc < frames ->
+                {[{pts, frames - acc}], 0}
+
+              true ->
+                {[nil], acc - frames}
+            end
+          end)
+
         filtered = mapped |> Enum.reject(fn x -> x == nil end)
-        # IO.inspect(filtered, label: "filtered")
 
         {%{state | pts_queue: filtered}, out_pts}
+
       true ->
         {%{state | pts_queue: rest}, out_pts}
     end
