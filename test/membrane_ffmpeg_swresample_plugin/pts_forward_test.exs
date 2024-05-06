@@ -41,15 +41,15 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
     ]
 
     pipeline = Testing.Pipeline.start_link_supervised!(spec: spec)
-    assert_sink_buffer(pipeline, :sink, _buffer)
+    # converted buffers some data and first released buffers are a bit smaller than input data,
+    # that's why we expect first 2 to have the same pts == 0
+    assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: out_pts})
+    assert out_pts == 0
 
-    Enum.each(0..30, fn index ->
+    Enum.each(0..31, fn index ->
       assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: out_pts})
       assert out_pts == index * @pts_multiplier
     end)
-
-    assert_sink_buffer(pipeline, :sink, %Membrane.Buffer{pts: last_out_pts})
-    assert last_out_pts == 30 * @pts_multiplier
 
     assert_end_of_stream(pipeline, :sink)
     Testing.Pipeline.terminate(pipeline)
