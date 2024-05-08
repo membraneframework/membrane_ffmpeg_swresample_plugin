@@ -110,18 +110,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     """
   end
 
-  defp check_dropped_frames(state) do
-    dropped_bytes = byte_size(state.queue)
-
-    if dropped_bytes > 0 do
-      Membrane.Logger.warning(
-        "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
-      )
-    end
-
-    :ok
-  end
-
   @impl true
   def handle_stream_format(:input, %RawAudio{} = stream_format, _ctx, state) do
     # flush old converter
@@ -134,7 +122,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
         converted ->
           output_duration = calculate_output_duration(converted, state)
-          {state, out_pts} = update_pts_queue(state, output_duration)
+          {_state, out_pts} = update_pts_queue(state, output_duration)
           [buffer: {:output, %Buffer{payload: converted, pts: out_pts}}]
       end
 
@@ -203,6 +191,18 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
            end_of_stream: :output
          ], %{state | queue: <<>>}}
     end
+  end
+
+  defp check_dropped_frames(state) do
+    dropped_bytes = byte_size(state.queue)
+
+    if dropped_bytes > 0 do
+      Membrane.Logger.warning(
+        "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
+      )
+    end
+
+    :ok
   end
 
   defp mk_native!(
