@@ -264,6 +264,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       (RawAudio.frame_size(state.input_stream_format) * state.input_stream_format.sample_rate)
   end
 
+  ## ----- working version ------
   defp update_pts_queue(state, output_duration) do
     [{out_pts, expected_duration} | rest] = state.pts_queue
 
@@ -303,4 +304,36 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
     mapped |> Enum.reject(fn x -> x == nil end)
   end
+
+  ## ----- recursive version ------
+  # defp update_pts_queue(state, output_duration) do
+  #   filter_pts_queue(state, output_duration, nil)
+  # end
+
+  # defp filter_pts_queue(state, output_duration, target_pts_acc) do
+  #   [{out_pts, expected_duration} | rest] = state.pts_queue
+
+  #   cond do
+  #     output_duration < expected_duration ->
+  #       pts = get_target_pts(target_pts_acc, out_pts)
+  #       {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, pts}
+
+  #     output_duration > expected_duration ->
+  #       output_duration = output_duration - expected_duration
+  #       pts = get_target_pts(target_pts_acc, out_pts)
+  #       filter_pts_queue(%{state | pts_queue: rest}, output_duration, pts)
+
+  #     output_duration == expected_duration ->
+  #       pts = get_target_pts(target_pts_acc, out_pts)
+  #       {%{state | pts_queue: rest}, pts}
+  #   end
+  # end
+
+  # defp get_target_pts(target_pts_acc, out_pts) do
+  #   if is_nil(target_pts_acc) do
+  #     out_pts
+  #   else
+  #     target_pts_acc
+  #   end
+  # end
 end
