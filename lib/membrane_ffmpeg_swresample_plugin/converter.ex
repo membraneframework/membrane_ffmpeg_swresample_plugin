@@ -139,11 +139,9 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        converted_frames =
-          byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
-            (input_frame_size * state.input_stream_format.sample_rate)
+        output_duration = calculate_output_duration(converted, state)
 
-        {state, out_pts} = update_pts_queue(state, converted_frames)
+        {state, out_pts} = update_pts_queue(state, output_duration)
 
         {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
     end
@@ -168,13 +166,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
-        input_frame_size = RawAudio.frame_size(state.input_stream_format)
 
-        converted_frames =
-          byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
-            (input_frame_size * state.input_stream_format.sample_rate)
+        output_duration = calculate_output_duration(converted, state)
 
-        {state, out_pts} = update_pts_queue(state, converted_frames)
+        {state, out_pts} = update_pts_queue(state, output_duration)
 
         {[
            buffer: {:output, %Buffer{payload: converted, pts: out_pts}},
@@ -237,15 +232,15 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     end
   end
 
-  defp update_pts_queue(state, converted_frames) do
-    [{out_pts, expected_frames} | rest] = state.pts_queue
+  defp update_pts_queue(state, output_duration) do
+    [{out_pts, expected_duration} | rest] = state.pts_queue
 
     cond do
-      converted_frames < expected_frames ->
-        {%{state | pts_queue: [{out_pts, expected_frames - converted_frames}] ++ rest}, out_pts}
+      output_duration < expected_duration ->
+        {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, out_pts}
 
-      converted_frames > expected_frames ->
-        remaining_frames_count = converted_frames - expected_frames
+        output_duration > expected_duration ->
+        remaining_frames_count = output_duration - expected_duration
 
         filtered = filter_pts_queue(rest, remaining_frames_count)
 
@@ -275,5 +270,9 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       end)
 
     mapped |> Enum.reject(fn x -> x == nil end)
+  end
+
+  defp calculate_output_duration(converted, state) do
+    byte_size(converted) / RawAudio.frame_size(state.output_stream_format) * (RawAudio.frame_size(state.input_stream_format) * state.input_stream_format.sample_rate)
   end
 end
