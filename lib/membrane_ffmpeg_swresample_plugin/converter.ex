@@ -65,8 +65,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         native: nil,
         queue: <<>>,
         input_stream_format_provided?: options.input_stream_format != nil,
-        pts_queue: [],
-        counter: 0
+        pts_queue: []
       })
 
     {[], state}
@@ -111,11 +110,35 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     """
   end
 
+  defp check_dropped_frames(state) do
+    dropped_bytes = byte_size(state.queue)
+
+    if dropped_bytes > 0 do
+      Membrane.Logger.warning(
+        "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
+      )
+    end
+    :ok
+  end
+
   @impl true
   def handle_stream_format(:input, %RawAudio{} = stream_format, _ctx, state) do
+    # flush old converter
+    check_dropped_frames(state)
+
+    flushed_actions = case flush!(state.native) do
+      <<>> ->
+        []
+
+      converted ->
+        output_duration = calculate_output_duration(converted, state)
+        {state, out_pts} = update_pts_queue(state, output_duration)
+        [buffer: {:output, %Buffer{payload: converted, pts: out_pts}}]
+    end
+    # create new converter
     native = mk_native!(stream_format, state.output_stream_format)
-    state = %{state | native: native, input_stream_format: stream_format}
-    {[stream_format: {:output, state.output_stream_format}], state}
+    state = %{state | native: native, input_stream_format: stream_format, queue: <<>>, pts_queue: []}
+    {flushed_actions ++ [stream_format: {:output, state.output_stream_format}], state}
   end
 
   @impl true
@@ -141,7 +164,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
       {converted, queue} ->
         output_duration = calculate_output_duration(converted, state)
-        # IO.inspect(state.pts_queue)
         {state, out_pts} = update_pts_queue(state, output_duration)
 
         {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
@@ -154,13 +176,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   def handle_end_of_stream(:input, _ctx, state) do
-    dropped_bytes = byte_size(state.queue)
-
-    if dropped_bytes > 0 do
-      Membrane.Logger.warning(
-        "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
-      )
-    end
+    check_dropped_frames(state)
 
     case flush!(state.native) do
       <<>> ->
@@ -232,80 +248,29 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     end
   end
 
-  defp update_pts_queue(state, output_duration) do
-    c = state.counter
-    state = %{state | counter: c+1}
-    IO.inspect(state.counter, label: "counter")
-    IO.inspect(state.pts_queue, label: "state.pts_queue")
-    filter_pts_queue(state, output_duration, nil)
+  defp calculate_output_duration(converted, state) do
+    byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
+      (RawAudio.frame_size(state.input_stream_format) * state.input_stream_format.sample_rate)
   end
 
-  defp filter_pts_queue(state, output_duration, target_pts_acc) do
-    IO.inspect(state.pts_queue, label: "filter_pts_queue")
-
+  defp update_pts_queue(state, output_duration) do
     [{out_pts, expected_duration} | rest] = state.pts_queue
-    IO.inspect(expected_duration, label: "expected_duration")
-    IO.inspect(output_duration, label: "output_duration")
 
     cond do
       output_duration < expected_duration ->
-        IO.puts("less")
-        pts = get_target_pts(target_pts_acc, out_pts)
-        {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, pts}
+        {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, out_pts}
 
       output_duration > expected_duration ->
-        output_duration = output_duration - expected_duration
-        pts = get_target_pts(target_pts_acc, out_pts)
-        filter_pts_queue(%{state | pts_queue: rest}, output_duration, pts)
+        remaining_frames_count = output_duration - expected_duration
+
+        filtered = filter_pts_queue(rest, remaining_frames_count)
+
+        {%{state | pts_queue: filtered}, out_pts}
 
       output_duration == expected_duration ->
-        IO.puts("eq")
-
-        pts = get_target_pts(target_pts_acc, out_pts)
-        {%{state | pts_queue: rest}, pts}
+        {%{state | pts_queue: rest}, out_pts}
     end
   end
-
-  defp get_target_pts(target_pts_acc, out_pts) do
-    if is_nil(target_pts_acc) do
-      out_pts
-    else
-      target_pts_acc
-    end
-  end
-
-  defp calculate_output_duration(converted, state) do
-    byte_size(converted) / RawAudio.frame_size(state.output_stream_format) * (RawAudio.frame_size(state.input_stream_format) * state.input_stream_format.sample_rate)
-  end
-
-  # defp update_pts_queue(state, output_duration) do
-  #   c = state.counter
-  #   state = %{state | counter: c+1}
-  #   IO.inspect(state.counter, label: "counter")
-  #   IO.inspect(state.pts_queue, label: "state.pts_queue")
-  #   [{out_pts, expected_duration} | rest] = state.pts_queue
-  #   IO.inspect(expected_duration, label: "expected_duration")
-  #   IO.inspect(output_duration, label: "output_duration")
-  #   cond do
-  #     output_duration < expected_duration ->
-  #       IO.puts("less")
-  #       {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, out_pts}
-
-  #     output_duration > expected_duration ->
-  #       IO.puts("more")
-
-  #       remaining_frames_count = output_duration - expected_duration
-
-  #       filtered = filter_pts_queue(rest, remaining_frames_count)
-
-  #       {%{state | pts_queue: filtered}, out_pts}
-
-  #     output_duration == expected_duration ->
-  #       IO.puts("eq")
-
-  #       {%{state | pts_queue: rest}, out_pts}
-  #   end
-  # end
 
   defp filter_pts_queue(pts_queue, remaining_frames_count) do
     {mapped, _acc} =
