@@ -65,7 +65,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         native: nil,
         queue: <<>>,
         input_stream_format_provided?: options.input_stream_format != nil,
-        pts_queue: []
+        pts_queue: [],
+        counter: 0
       })
 
     {[], state}
@@ -139,10 +140,9 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        output_duration = byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
-        (input_frame_size * state.input_stream_format.sample_rate)
+        output_duration = calculate_output_duration(converted, state)
         # IO.inspect(state.pts_queue)
-        {state, out_pts} = get_pts(state, output_duration)
+        {state, out_pts} = update_pts_queue(state, output_duration)
 
         {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
     end
@@ -167,12 +167,9 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
-        input_frame_size = RawAudio.frame_size(state.input_stream_format)
-        output_duration = byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
-        (input_frame_size * state.input_stream_format.sample_rate)
-        # IO.inspect(state.pts_queue, label: "EOS")
+        output_duration = calculate_output_duration(converted, state)
 
-        {state, out_pts} = get_pts(state, output_duration)
+        {state, out_pts} = update_pts_queue(state, output_duration)
 
         {[
            buffer: {:output, %Buffer{payload: converted, pts: out_pts}},
@@ -235,27 +232,35 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     end
   end
 
-  defp get_pts(state, output_duration) do
-    IO.inspect(state.pts_queue, label: "get_pts")
-    update_pts_queue(state, output_duration, nil)
+  defp update_pts_queue(state, output_duration) do
+    c = state.counter
+    state = %{state | counter: c+1}
+    IO.inspect(state.counter, label: "counter")
+    IO.inspect(state.pts_queue, label: "state.pts_queue")
+    filter_pts_queue(state, output_duration, nil)
   end
 
-  defp update_pts_queue(state, output_duration, target_pts_acc) do
-    [{out_pts, expected_frames} | rest] = state.pts_queue
+  defp filter_pts_queue(state, output_duration, target_pts_acc) do
+    IO.inspect(state.pts_queue, label: "filter_pts_queue")
+
+    [{out_pts, expected_duration} | rest] = state.pts_queue
+    IO.inspect(expected_duration, label: "expected_duration")
+    IO.inspect(output_duration, label: "output_duration")
 
     cond do
-      output_duration < expected_frames ->
+      output_duration < expected_duration ->
+        IO.puts("less")
         pts = get_target_pts(target_pts_acc, out_pts)
-        {%{state | pts_queue: [{out_pts, expected_frames - output_duration}] ++ rest}, pts}
+        {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, pts}
 
-      output_duration > expected_frames ->
-
-        output_duration = output_duration - expected_frames
-
+      output_duration > expected_duration ->
+        output_duration = output_duration - expected_duration
         pts = get_target_pts(target_pts_acc, out_pts)
-        update_pts_queue(%{state | pts_queue: rest}, output_duration, pts)
+        filter_pts_queue(%{state | pts_queue: rest}, output_duration, pts)
 
-      output_duration == expected_frames ->
+      output_duration == expected_duration ->
+        IO.puts("eq")
+
         pts = get_target_pts(target_pts_acc, out_pts)
         {%{state | pts_queue: rest}, pts}
     end
@@ -272,45 +277,54 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   defp calculate_output_duration(converted, state) do
     byte_size(converted) / RawAudio.frame_size(state.output_stream_format) * (RawAudio.frame_size(state.input_stream_format) * state.input_stream_format.sample_rate)
   end
-    # defp update_pts_queue(state, output_duration) do
-  #   [{out_pts, expected_duration} | rest] = state.pts_queue
 
+  # defp update_pts_queue(state, output_duration) do
+  #   c = state.counter
+  #   state = %{state | counter: c+1}
+  #   IO.inspect(state.counter, label: "counter")
+  #   IO.inspect(state.pts_queue, label: "state.pts_queue")
+  #   [{out_pts, expected_duration} | rest] = state.pts_queue
+  #   IO.inspect(expected_duration, label: "expected_duration")
+  #   IO.inspect(output_duration, label: "output_duration")
   #   cond do
   #     output_duration < expected_duration ->
+  #       IO.puts("less")
   #       {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, out_pts}
 
-  #       output_duration > expected_duration ->
+  #     output_duration > expected_duration ->
+  #       IO.puts("more")
+
   #       remaining_frames_count = output_duration - expected_duration
 
   #       filtered = filter_pts_queue(rest, remaining_frames_count)
 
   #       {%{state | pts_queue: filtered}, out_pts}
 
-  #     true ->
+  #     output_duration == expected_duration ->
+  #       IO.puts("eq")
+
   #       {%{state | pts_queue: rest}, out_pts}
   #   end
   # end
 
-  # defp filter_pts_queue(pts_queue, remaining_frames_count) do
-  #   {mapped, _acc} =
-  #     pts_queue
-  #     |> Enum.flat_map_reduce(remaining_frames_count, fn x, acc ->
-  #       {pts, frames} = x
+  defp filter_pts_queue(pts_queue, remaining_frames_count) do
+    {mapped, _acc} =
+      pts_queue
+      |> Enum.flat_map_reduce(remaining_frames_count, fn x, acc ->
+        {pts, frames} = x
 
-  #       cond do
-  #         acc == 0 ->
-  #           {[{pts, frames}], 0}
+        cond do
+          acc == 0 ->
+            {[{pts, frames}], 0}
 
-  #         acc < frames ->
-  #           {[{pts, frames - acc}], 0}
+          acc < frames ->
+            {[{pts, frames - acc}], 0}
 
-  #         true ->
-  #           {[nil], acc - frames}
-  #       end
-  #     end)
+          true ->
+            {[nil], acc - frames}
+        end
+      end)
 
-  #   mapped |> Enum.reject(fn x -> x == nil end)
-  # end
-
-
+    mapped |> Enum.reject(fn x -> x == nil end)
+  end
 end
