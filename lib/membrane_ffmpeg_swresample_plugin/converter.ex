@@ -118,6 +118,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
       )
     end
+
     :ok
   end
 
@@ -126,18 +127,28 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     # flush old converter
     check_dropped_frames(state)
 
-    flushed_actions = case flush!(state.native) do
-      <<>> ->
-        []
+    flushed_actions =
+      case flush!(state.native) do
+        <<>> ->
+          []
 
-      converted ->
-        output_duration = calculate_output_duration(converted, state)
-        {state, out_pts} = update_pts_queue(state, output_duration)
-        [buffer: {:output, %Buffer{payload: converted, pts: out_pts}}]
-    end
+        converted ->
+          output_duration = calculate_output_duration(converted, state)
+          {state, out_pts} = update_pts_queue(state, output_duration)
+          [buffer: {:output, %Buffer{payload: converted, pts: out_pts}}]
+      end
+
     # create new converter
     native = mk_native!(stream_format, state.output_stream_format)
-    state = %{state | native: native, input_stream_format: stream_format, queue: <<>>, pts_queue: []}
+
+    state = %{
+      state
+      | native: native,
+        input_stream_format: stream_format,
+        queue: <<>>,
+        pts_queue: []
+    }
+
     {flushed_actions ++ [stream_format: {:output, state.output_stream_format}], state}
   end
 
