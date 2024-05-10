@@ -65,7 +65,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         native: nil,
         queue: <<>>,
         input_stream_format_provided?: options.input_stream_format != nil,
-        pts_queue: []
+        pts_queue: [],
+        last_valid_pts: nil
       })
 
     {[], state}
@@ -122,7 +123,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
         converted ->
           output_duration = calculate_output_duration(converted, state)
-          {_state, out_pts} = update_pts_queue(state, output_duration)
+          {_state, out_pts} = update_pts_queue(state, output_duration, true)
           [buffer: {:output, %Buffer{payload: converted, pts: out_pts}}]
       end
 
@@ -134,7 +135,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       | native: native,
         input_stream_format: stream_format,
         queue: <<>>,
-        pts_queue: []
+        pts_queue: [],
+        last_valid_pts: nil
     }
 
     {flushed_actions ++ [stream_format: {:output, state.output_stream_format}], state}
@@ -163,7 +165,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
       {converted, queue} ->
         output_duration = calculate_output_duration(converted, state)
-        {state, out_pts} = update_pts_queue(state, output_duration)
+        {state, out_pts} = update_pts_queue(state, output_duration, false)
 
         {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
     end
@@ -184,7 +186,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       converted ->
         output_duration = calculate_output_duration(converted, state)
 
-        {state, out_pts} = update_pts_queue(state, output_duration)
+        {state, out_pts} = update_pts_queue(state, output_duration, true)
 
         {[
            buffer: {:output, %Buffer{payload: converted, pts: out_pts}},
@@ -264,76 +266,50 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       (RawAudio.frame_size(state.input_stream_format) * state.input_stream_format.sample_rate)
   end
 
-  ## ----- working version ------
-  defp update_pts_queue(state, output_duration) do
+  defp update_pts_queue(state, output_duration, flush_trigger) do
+    filter_pts_queue(state, output_duration, flush_trigger, nil)
+  end
+
+  defp filter_pts_queue(state, output_duration, flush_trigger, target_pts_acc) do
     [{out_pts, expected_duration} | rest] = state.pts_queue
 
     cond do
       output_duration < expected_duration ->
-        {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, out_pts}
+        pts = get_target_pts(target_pts_acc, out_pts)
+
+        {%{
+           state
+           | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest,
+             last_valid_pts: pts
+         }, pts}
 
       output_duration > expected_duration ->
-        remaining_frames_count = output_duration - expected_duration
+        output_duration = output_duration - expected_duration
+        pts = get_target_pts(target_pts_acc, out_pts)
 
-        filtered = filter_pts_queue(rest, remaining_frames_count)
+        cond do
+          rest != [] ->
+            filter_pts_queue(%{state | pts_queue: rest}, output_duration, flush_trigger, pts)
 
-        {%{state | pts_queue: filtered}, out_pts}
+          flush_trigger ->
+            {state, state.last_valid_pts}
+
+          true ->
+            Membrane.Logger.warning("Converter returned more data than expected")
+            {state, state.last_valid_pts}
+        end
 
       output_duration == expected_duration ->
-        {%{state | pts_queue: rest}, out_pts}
+        pts = get_target_pts(target_pts_acc, out_pts)
+        {%{state | pts_queue: rest, last_valid_pts: pts}, pts}
     end
   end
 
-  defp filter_pts_queue(pts_queue, remaining_frames_count) do
-    {mapped, _acc} =
-      pts_queue
-      |> Enum.flat_map_reduce(remaining_frames_count, fn x, acc ->
-        {pts, frames} = x
-
-        cond do
-          acc == 0 ->
-            {[{pts, frames}], 0}
-
-          acc < frames ->
-            {[{pts, frames - acc}], 0}
-
-          true ->
-            {[nil], acc - frames}
-        end
-      end)
-
-    mapped |> Enum.reject(fn x -> x == nil end)
+  defp get_target_pts(target_pts_acc, out_pts) do
+    if is_nil(target_pts_acc) do
+      out_pts
+    else
+      target_pts_acc
+    end
   end
-
-  ## ----- recursive version ------
-  # defp update_pts_queue(state, output_duration) do
-  #   filter_pts_queue(state, output_duration, nil)
-  # end
-
-  # defp filter_pts_queue(state, output_duration, target_pts_acc) do
-  #   [{out_pts, expected_duration} | rest] = state.pts_queue
-
-  #   cond do
-  #     output_duration < expected_duration ->
-  #       pts = get_target_pts(target_pts_acc, out_pts)
-  #       {%{state | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest}, pts}
-
-  #     output_duration > expected_duration ->
-  #       output_duration = output_duration - expected_duration
-  #       pts = get_target_pts(target_pts_acc, out_pts)
-  #       filter_pts_queue(%{state | pts_queue: rest}, output_duration, pts)
-
-  #     output_duration == expected_duration ->
-  #       pts = get_target_pts(target_pts_acc, out_pts)
-  #       {%{state | pts_queue: rest}, pts}
-  #   end
-  # end
-
-  # defp get_target_pts(target_pts_acc, out_pts) do
-  #   if is_nil(target_pts_acc) do
-  #     out_pts
-  #   else
-  #     target_pts_acc
-  #   end
-  # end
 end
