@@ -200,7 +200,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
     if dropped_bytes > 0 do
       Membrane.Logger.warning(
-        "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
+        "Dropping enqueued #{dropped_bytes}. It's possible that the stream was ended or changed abruptly or the provided formats are invalid."
       )
     end
 
