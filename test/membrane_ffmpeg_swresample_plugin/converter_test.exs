@@ -180,7 +180,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       assert {actions, new_state} = @module.handle_buffer(:input, buffer, nil, state)
 
       assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}]
-      assert new_state == %{state | queue: <<0::2*8>>, pts_queue: [{nil, 308_700}]}
+      assert new_state == %{state | queue: <<0::2*8>>}
     end
   end
 end

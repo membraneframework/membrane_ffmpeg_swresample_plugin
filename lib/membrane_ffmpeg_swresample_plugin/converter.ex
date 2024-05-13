@@ -270,7 +270,12 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     filter_pts_queue(state, output_duration, flush_trigger, nil)
   end
 
-  defp filter_pts_queue(state, output_duration, flush_trigger, target_pts_acc) do
+  defp filter_pts_queue(
+         %{pts_queue: [_ | _]} = state,
+         output_duration,
+         flush_trigger,
+         target_pts_acc
+       ) do
     [{out_pts, expected_duration} | rest] = state.pts_queue
 
     cond do
@@ -287,22 +292,22 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         output_duration = output_duration - expected_duration
         pts = get_target_pts(target_pts_acc, out_pts)
 
-        cond do
-          rest != [] ->
-            filter_pts_queue(%{state | pts_queue: rest}, output_duration, flush_trigger, pts)
-
-          flush_trigger ->
-            {state, state.last_valid_pts}
-
-          true ->
-            Membrane.Logger.warning("Converter returned more data than expected")
-            {state, state.last_valid_pts}
-        end
+        filter_pts_queue(%{state | pts_queue: rest}, output_duration, flush_trigger, pts)
 
       output_duration == expected_duration ->
         pts = get_target_pts(target_pts_acc, out_pts)
         {%{state | pts_queue: rest, last_valid_pts: pts}, pts}
     end
+  end
+
+  defp filter_pts_queue(state, _output_duration, flush_trigger, _target_pts_acc)
+       when flush_trigger == true do
+    {state, state.last_valid_pts}
+  end
+
+  defp filter_pts_queue(state, _output_duration, _flush_trigger, _target_pts_acc) do
+    Membrane.Logger.warning("Converter returned more data than expected")
+    {state, state.last_valid_pts}
   end
 
   defp get_target_pts(target_pts_acc, out_pts) do
