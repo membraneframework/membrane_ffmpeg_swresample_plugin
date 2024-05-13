@@ -28,7 +28,8 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
         frames_per_buffer: 2048,
         native: nil,
         queue: <<>>,
-        pts_queue: []
+        pts_queue: [],
+        last_valid_pts: nil
       }
     }
   end
@@ -36,6 +37,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
   defp test_handle_stream_format(state) do
     Mockery.History.enable_history()
     mock(@native, [create: 6], {:ok, :mock_handle})
+    mock(@native, [convert: 2], {:ok, <<>>})
 
     assert {actions, new_state} = @module.handle_stream_format(:input, @s16le_format, nil, state)
 
@@ -141,6 +143,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       state: state
     } do
       mock(@native, [create: 6], {:error, :reason})
+      mock(@native, [convert: 2], {:ok, <<>>})
 
       assert_raise RuntimeError, fn ->
         @module.handle_stream_format(:input, @s16le_format, nil, state)

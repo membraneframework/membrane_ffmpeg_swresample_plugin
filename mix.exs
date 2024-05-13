@@ -2,7 +2,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
   use Mix.Project
 
   @github_url "https://github.com/membraneframework/membrane_ffmpeg_swresample_plugin"
-  @version "0.20.0"
+  @version "0.20.1"
 
   def project do
     [
@@ -50,6 +50,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
       # Testing
       {:mockery, "~> 2.1", runtime: false},
       {:membrane_file_plugin, "~> 0.16.0", only: :test},
+      {:membrane_mp3_mad_plugin, "~> 0.18.2", only: :test},
       # Development
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
