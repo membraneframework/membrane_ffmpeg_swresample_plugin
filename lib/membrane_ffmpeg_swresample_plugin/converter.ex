@@ -117,14 +117,18 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     check_dropped_frames(state)
 
     flushed_actions =
-      case flush!(state.native) do
-        <<>> ->
-          []
+      if state.native == nil do
+        []
+      else
+        case flush!(state.native) do
+          <<>> ->
+            []
 
-        converted ->
-          output_duration = calculate_output_duration(converted, state)
-          {_state, out_pts} = update_pts_queue(state, output_duration, true)
-          [buffer: {:output, %Buffer{payload: converted, pts: out_pts}}]
+          converted ->
+            output_duration = calculate_output_duration(converted, state)
+            {_state, out_pts} = update_pts_queue(state, output_duration, true)
+            [buffer: {:output, %Buffer{payload: converted, pts: out_pts}}]
+        end
       end
 
     # create new converter
