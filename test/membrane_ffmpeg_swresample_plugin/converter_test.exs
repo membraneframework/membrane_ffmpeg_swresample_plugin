@@ -28,8 +28,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
         frames_per_buffer: 2048,
         native: nil,
         queue: <<>>,
-        pts_queue: [],
-        last_valid_pts: nil
+        next_pts: 0
       }
     }
   end
@@ -160,7 +159,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
       assert {[], new_state} = @module.handle_buffer(:input, buffer, nil, state)
 
-      assert %{new_state | pts_queue: nil} == %{state | queue: payload, pts_queue: nil}
+      assert new_state.queue == payload
       refute_called(@native, :convert)
     end
 
@@ -179,8 +178,8 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
       assert {actions, new_state} = @module.handle_buffer(:input, buffer, nil, state)
 
-      assert actions == [buffer: {:output, %Membrane.Buffer{payload: result}}]
-      assert new_state == %{state | queue: <<0::2*8>>}
+      assert actions == [buffer: {:output, %Membrane.Buffer{payload: result, pts: 0}}]
+      assert new_state.queue == <<0::2*8>>
     end
   end
 end

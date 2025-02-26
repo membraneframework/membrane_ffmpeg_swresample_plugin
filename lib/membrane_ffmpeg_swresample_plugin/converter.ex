@@ -65,8 +65,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         native: nil,
         queue: <<>>,
         input_stream_format_provided?: options.input_stream_format != nil,
-        pts_queue: [],
-        last_valid_pts: nil
+        next_pts: nil
       })
 
     {[], state}
@@ -116,18 +115,21 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     # flush old converter
     check_dropped_frames(state)
 
-    flushed_actions =
+    {flushed_actions, state} =
       if state.native == nil do
-        []
+        {[], state}
       else
         case flush!(state.native) do
           <<>> ->
-            []
+            {[], state}
 
           converted ->
-            output_duration = calculate_output_duration(converted, state)
-            {_state, out_pts} = update_pts_queue(state, output_duration, true)
-            [buffer: {:output, %Buffer{payload: converted, pts: out_pts}}]
+            next_pts =
+              state.next_pts +
+                RawAudio.bytes_to_time(byte_size(converted), state.output_stream_format)
+
+            {[buffer: {:output, %Buffer{payload: converted, pts: state.next_pts}}],
+             %{state | next_pts: next_pts}}
         end
       end
 
@@ -138,27 +140,20 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       state
       | native: native,
         input_stream_format: stream_format,
-        queue: <<>>,
-        pts_queue: [],
-        last_valid_pts: nil
+        queue: <<>>
     }
 
     {flushed_actions ++ [stream_format: {:output, state.output_stream_format}], state}
   end
 
   @impl true
-  def handle_playing(_ctx, state) do
-    {[stream_format: {:output, state.output_stream_format}], state}
+  def handle_buffer(:input, buffer, ctx, state = %{next_pts: nil}) do
+    pts = buffer.pts || 0
+    handle_buffer(:input, buffer, ctx, Map.put(state, :next_pts, pts))
   end
 
-  @impl true
-  def handle_buffer(:input, %Buffer{payload: payload, pts: input_pts}, _ctx, state) do
+  def handle_buffer(:input, %Buffer{payload: payload}, _ctx, state) do
     input_frame_size = RawAudio.frame_size(state.input_stream_format)
-
-    state =
-      Map.update!(state, :pts_queue, fn pts_queue ->
-        pts_queue ++ [{input_pts, byte_size(payload) * state.output_stream_format.sample_rate}]
-      end)
 
     conversion_result =
       convert!(state.native, input_frame_size, payload, state.queue)
@@ -168,10 +163,12 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[], %{state | queue: queue}}
 
       {converted, queue} ->
-        output_duration = calculate_output_duration(converted, state)
-        {state, out_pts} = update_pts_queue(state, output_duration, false)
+        next_pts =
+          state.next_pts +
+            RawAudio.bytes_to_time(byte_size(converted), state.output_stream_format)
 
-        {[buffer: {:output, %Buffer{payload: converted, pts: out_pts}}], %{state | queue: queue}}
+        {[buffer: {:output, %Buffer{payload: converted, pts: state.next_pts}}],
+         %{state | next_pts: next_pts, queue: queue}}
     end
   end
 
@@ -188,12 +185,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         {[end_of_stream: :output], %{state | queue: <<>>}}
 
       converted ->
-        output_duration = calculate_output_duration(converted, state)
-
-        {state, out_pts} = update_pts_queue(state, output_duration, true)
-
         {[
-           buffer: {:output, %Buffer{payload: converted, pts: out_pts}},
+           buffer: {:output, %Buffer{payload: converted, pts: state.next_pts}},
            end_of_stream: :output
          ], %{state | queue: <<>>}}
     end
@@ -262,63 +255,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     case mockable(Native).convert("", native) do
       {:ok, result} -> result
       {:error, reason} -> raise "Error while flushing converter: #{inspect(reason)}"
-    end
-  end
-
-  defp calculate_output_duration(converted, state) do
-    byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
-      (RawAudio.frame_size(state.input_stream_format) * state.input_stream_format.sample_rate)
-  end
-
-  defp update_pts_queue(state, output_duration, flush_trigger) do
-    filter_pts_queue(state, output_duration, flush_trigger, nil)
-  end
-
-  defp filter_pts_queue(
-         %{pts_queue: [_ | _]} = state,
-         output_duration,
-         flush_trigger,
-         target_pts_acc
-       ) do
-    [{out_pts, expected_duration} | rest] = state.pts_queue
-
-    cond do
-      output_duration < expected_duration ->
-        pts = get_target_pts(target_pts_acc, out_pts)
-
-        {%{
-           state
-           | pts_queue: [{out_pts, expected_duration - output_duration}] ++ rest,
-             last_valid_pts: pts
-         }, pts}
-
-      output_duration > expected_duration ->
-        output_duration = output_duration - expected_duration
-        pts = get_target_pts(target_pts_acc, out_pts)
-
-        filter_pts_queue(%{state | pts_queue: rest}, output_duration, flush_trigger, pts)
-
-      output_duration == expected_duration ->
-        pts = get_target_pts(target_pts_acc, out_pts)
-        {%{state | pts_queue: rest, last_valid_pts: pts}, pts}
-    end
-  end
-
-  defp filter_pts_queue(state, _output_duration, flush_trigger, _target_pts_acc)
-       when flush_trigger == true do
-    {state, state.last_valid_pts}
-  end
-
-  defp filter_pts_queue(state, _output_duration, _flush_trigger, _target_pts_acc) do
-    Membrane.Logger.warning("Converter returned more data than expected")
-    {state, state.last_valid_pts}
-  end
-
-  defp get_target_pts(target_pts_acc, out_pts) do
-    if is_nil(target_pts_acc) do
-      out_pts
-    else
-      target_pts_acc
     end
   end
 end
