@@ -112,9 +112,38 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
   @impl true
   def handle_stream_format(:input, %RawAudio{} = stream_format, _ctx, state) do
+    # flush old converter
+    check_dropped_frames(state)
+
+    {flushed_actions, state} =
+      if state.native == nil do
+        {[], state}
+      else
+        case flush!(state.native) do
+          <<>> ->
+            {[], state}
+
+          converted ->
+            next_pts =
+              state.next_pts +
+                RawAudio.bytes_to_time(byte_size(converted), state.output_stream_format)
+
+            {[buffer: {:output, %Buffer{payload: converted, pts: state.next_pts}}],
+             %{state | next_pts: next_pts}}
+        end
+      end
+
+    # create new converter
     native = mk_native!(stream_format, state.output_stream_format)
-    state = %{state | native: native, input_stream_format: stream_format}
-    {[stream_format: {:output, state.output_stream_format}], state}
+
+    state = %{
+      state
+      | native: native,
+        input_stream_format: stream_format,
+        queue: <<>>
+    }
+
+    {flushed_actions ++ [stream_format: {:output, state.output_stream_format}], state}
   end
 
   @impl true
@@ -149,13 +178,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   def handle_end_of_stream(:input, _ctx, state) do
-    dropped_bytes = byte_size(state.queue)
-
-    if dropped_bytes > 0 do
-      Membrane.Logger.warning(
-        "Dropping enqueued #{dropped_bytes} on EoS. It's possible that the stream was ended abrubtly or the provided formats are invalid."
-      )
-    end
+    check_dropped_frames(state)
 
     case flush!(state.native) do
       <<>> ->
@@ -167,6 +190,18 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
            end_of_stream: :output
          ], %{state | queue: <<>>}}
     end
+  end
+
+  defp check_dropped_frames(state) do
+    dropped_bytes = byte_size(state.queue)
+
+    if dropped_bytes > 0 do
+      Membrane.Logger.warning(
+        "Dropping enqueued #{dropped_bytes}. It's possible that the stream was ended or changed abruptly or the provided formats are invalid."
+      )
+    end
+
+    :ok
   end
 
   defp mk_native!(
