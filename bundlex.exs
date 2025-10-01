@@ -15,7 +15,8 @@ defmodule Membrane.FFmpeg.SWResample.BundlexProject do
         deps: [membrane_common_c: :membrane, unifex: :unifex],
         os_deps: [
           ffmpeg: [
-            {:precompiled, Membrane.PrecompiledDependencyProvider.get_dependency_url(:ffmpeg),
+            {:precompiled,
+             Membrane.PrecompiledDependencyProvider.get_dependency_url(:ffmpeg, version: "6.0.1"),
              ["libswresample", "libavutil"]},
             {:pkg_config, ["libswresample", "libavutil"]}
           ]
