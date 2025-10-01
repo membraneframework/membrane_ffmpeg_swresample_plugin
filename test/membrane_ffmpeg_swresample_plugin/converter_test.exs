@@ -52,11 +52,11 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
     out_rate = @u8_format.sample_rate
     out_channel = @u8_format.channels
 
-    assert_called(
+    assert_called!(
       @native,
       :create,
-      [^input_fmt, ^input_rate, ^input_channel, ^out_fmt, ^out_rate, ^out_channel],
-      1
+      args: [^input_fmt, ^input_rate, ^input_channel, ^out_fmt, ^out_rate, ^out_channel],
+      times: 1
     )
   end
 
@@ -65,7 +65,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
   describe "handle_setup/2" do
     test "should do nothing if input stream format is not set", %{state: state} do
       assert @module.handle_setup(nil, state) == {[], state}
-      refute_called(@native, :create)
+      refute_called!(@native, :create)
     end
 
     test "create native converter if stream format is set", %{state: initial_state} do
@@ -89,11 +89,11 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       out_rate = @u8_format.sample_rate
       out_channel = @u8_format.channels
 
-      assert_called(
+      assert_called!(
         @native,
         :create,
-        [^input_fmt, ^input_rate, ^input_channel, ^out_fmt, ^out_rate, ^out_channel],
-        1
+        args: [^input_fmt, ^input_rate, ^input_channel, ^out_fmt, ^out_rate, ^out_channel],
+        times: 1
       )
     end
 
@@ -161,7 +161,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       assert {[], new_state} = @module.handle_buffer(:input, buffer, nil, state)
 
       assert %{new_state | pts_queue: nil} == %{state | queue: payload, pts_queue: nil}
-      refute_called(@native, :convert)
+      refute_called!(@native, :convert)
     end
 
     test "convert full frames and leave the remainder in queue", %{state: initial_state} do
