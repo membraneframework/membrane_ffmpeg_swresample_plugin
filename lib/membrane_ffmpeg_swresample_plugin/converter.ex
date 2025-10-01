@@ -275,13 +275,11 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   defp filter_pts_queue(
-         %{pts_queue: [_ | _]} = state,
+         %{pts_queue: [{out_pts, expected_duration} | rest]} = state,
          output_duration,
          flush_trigger,
          target_pts_acc
        ) do
-    [{out_pts, expected_duration} | rest] = state.pts_queue
-
     cond do
       output_duration < expected_duration ->
         pts = get_target_pts(target_pts_acc, out_pts)
