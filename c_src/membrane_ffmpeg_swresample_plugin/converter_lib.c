@@ -3,33 +3,26 @@
 
 char *lib_init(ConverterState *state, char from_s24le,
                enum AVSampleFormat src_sample_fmt, int src_rate,
-               int64_t src_ch_layout, enum AVSampleFormat dst_sample_fmt,
-               int dst_rate, int64_t dst_ch_layout)
+               const AVChannelLayout *src_ch_layout,
+               enum AVSampleFormat dst_sample_fmt, int dst_rate,
+               const AVChannelLayout *dst_ch_layout)
 {
   state->swr_ctx = NULL;
 
-  struct SwrContext *swr_ctx = swr_alloc();
-  if (!swr_ctx)
+  struct SwrContext *swr_ctx = NULL;
+  if (swr_alloc_set_opts2(&swr_ctx,
+                          dst_ch_layout, dst_sample_fmt, dst_rate,
+                          src_ch_layout, src_sample_fmt, src_rate,
+                          0, NULL) < 0)
   {
-    return "swr_alloc";
+    return "swr_alloc_set_opts2";
   }
 
   /* set options */
-  av_opt_set_int(swr_ctx, "in_channel_layout", src_ch_layout, 0);
-  av_opt_set_int(swr_ctx, "in_sample_rate", src_rate, 0);
-  av_opt_set_sample_fmt(swr_ctx, "in_sample_fmt", src_sample_fmt, 0);
-  av_opt_set_int(swr_ctx, "out_channel_layout", dst_ch_layout, 0);
-  av_opt_set_int(swr_ctx, "out_sample_rate", dst_rate, 0);
-  av_opt_set_sample_fmt(swr_ctx, "out_sample_fmt", dst_sample_fmt, 0);
   av_opt_set_int(swr_ctx, "dither_method", SWR_DITHER_RECTANGULAR, 0);
 
   if (swr_init(swr_ctx) < 0)
     return "swr_init";
-
-  AVChannelLayout src_ch_av_layout;
-  AVChannelLayout dst_ch_av_layout;
-  av_channel_layout_from_mask(&src_ch_av_layout, src_ch_layout);
-  av_channel_layout_from_mask(&dst_ch_av_layout, dst_ch_layout);
 
   *state = (ConverterState){
       .swr_ctx = swr_ctx,
@@ -37,8 +30,8 @@ char *lib_init(ConverterState *state, char from_s24le,
       .dst_rate = dst_rate,
       .src_sample_fmt = src_sample_fmt,
       .dst_sample_fmt = dst_sample_fmt,
-      .src_nb_channels = src_ch_av_layout.nb_channels,
-      .dst_nb_channels = dst_ch_av_layout.nb_channels,
+      .src_nb_channels = src_ch_layout->nb_channels,
+      .dst_nb_channels = dst_ch_layout->nb_channels,
       .from_s24le = from_s24le};
 
   return NULL;

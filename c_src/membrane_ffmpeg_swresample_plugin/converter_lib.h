@@ -14,8 +14,9 @@ typedef struct ConverterState
 
 char *lib_init(ConverterState *state, char from_s24le,
                enum AVSampleFormat src_sample_fmt, int src_rate,
-               int64_t src_ch_layout, enum AVSampleFormat dst_sample_fmt,
-               int dst_rate, int64_t dst_ch_layout);
+               const AVChannelLayout *src_ch_layout,
+               enum AVSampleFormat dst_sample_fmt, int dst_rate,
+               const AVChannelLayout *dst_ch_layout);
 
 char *lib_convert(ConverterState *state, uint8_t *input, int input_size,
                   uint8_t **output, int *output_size);
