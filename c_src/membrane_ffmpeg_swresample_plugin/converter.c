@@ -4,7 +4,7 @@
 
 static int membrane_sample_fmt_to_av_sample_fmt(int in, char dir, char *s24le,
                                                 enum AVSampleFormat *out);
-static int nb_channels_to_av_layout(int channels, int64_t *av_layout);
+static int nb_channels_to_av_chlayout(int channels, AVChannelLayout *layout);
 
 UNIFEX_TERM create(UnifexEnv *env, unsigned int src_format, int src_rate,
                    int src_channels, unsigned int dst_format, int dst_rate,
@@ -25,19 +25,19 @@ UNIFEX_TERM create(UnifexEnv *env, unsigned int src_format, int src_rate,
     err_reason = "unsupported_dst_format";
     goto create_exit;
   }
-  int64_t src_layout, dst_layout;
-  if (nb_channels_to_av_layout(src_channels, &src_layout)) {
+  AVChannelLayout src_layout, dst_layout;
+  if (nb_channels_to_av_chlayout(src_channels, &src_layout)) {
     err_reason = "unsupported_src_channels_no";
     goto create_exit;
   }
-  if (nb_channels_to_av_layout(dst_channels, &dst_layout)) {
+  if (nb_channels_to_av_chlayout(dst_channels, &dst_layout)) {
     err_reason = "unsupported_dst_channels_no";
     goto create_exit;
   }
 
   state = unifex_alloc_state(env);
-  err_reason = lib_init(state, from_s24le, src_av_format, src_rate, src_layout,
-                        dst_av_format, dst_rate, dst_layout);
+  err_reason = lib_init(state, from_s24le, src_av_format, src_rate, &src_layout,
+                        dst_av_format, dst_rate, &dst_layout);
   if (err_reason) {
     goto create_exit;
   }
@@ -121,17 +121,11 @@ static int membrane_sample_fmt_to_av_sample_fmt(int in, char dir, char *s24le,
   return error;
 }
 
-static int nb_channels_to_av_layout(int channels, int64_t *av_layout) {
-  int error = 0;
-  switch (channels) {
-  case 1:
-    *av_layout = AV_CH_LAYOUT_MONO;
-    break;
-  case 2:
-    *av_layout = AV_CH_LAYOUT_STEREO;
-    break;
-  default:
-    error = -1;
-  }
-  return error;
+static int nb_channels_to_av_chlayout(int channels, AVChannelLayout *layout) {
+  if (channels <= 0)
+    return -1;
+  av_channel_layout_default(layout, channels);
+  if (layout->nb_channels != channels)
+    return -1;
+  return 0;
 }
