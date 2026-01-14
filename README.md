@@ -13,7 +13,7 @@ It is a part of [Membrane Multimedia Framework](https://membrane.stream).
 Add the following line to your `deps` in `mix.exs`. Run `mix deps.get`.
 
 ```elixir
-{:membrane_ffmpeg_swresample_plugin, "~> 0.20.4"}
+{:membrane_ffmpeg_swresample_plugin, "~> 0.20.5"}
 ```
 
 The precompiled builds of the [ffmpeg](https://www.ffmpeg.org) will be pulled and linked automatically. However, should there be any problems, consider installing it manually.
@@ -22,19 +22,19 @@ The precompiled builds of the [ffmpeg](https://www.ffmpeg.org) will be pulled an
 
 #### macOS
 
-```shell
+```bash
 brew install ffmpeg
 ```
 
 #### Ubuntu
 
-```shell
+```bash
 sudo apt-get install ffmpeg
 ```
 
-#### Arch / Manjaro
+#### Arch
 
-```shell
+```bash
 pacman -S ffmpeg
 ```
 
