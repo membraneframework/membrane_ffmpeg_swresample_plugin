@@ -52,19 +52,21 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
       {:membrane_file_plugin, "~> 0.16.0", only: :test},
       {:membrane_mp3_mad_plugin, "~> 0.18.2", only: :test},
       # Development
-      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:credo, "~> 1.6", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: :dev, runtime: false},
+      {:credo, "~> 1.7", only: :dev, runtime: false}
     ]
   end
 
   defp dialyzer() do
     opts = [
       plt_local_path: "priv/plts",
-      flags: [:error_handling]
+      flags: [:error_handling],
+      plt_add_apps: [:syntax_tools]
     ]
 
     if System.get_env("CI") == "true" do
+      File.mkdir_p!(Path.join([__DIR__, "priv", "plts"]))
       [plt_core_path: "priv/plts"] ++ opts
     else
       opts
