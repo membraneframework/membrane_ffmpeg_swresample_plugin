@@ -2,7 +2,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
   use Mix.Project
 
   @github_url "https://github.com/membraneframework/membrane_ffmpeg_swresample_plugin"
-  @version "0.20.5"
+  @version "0.20.6"
 
   def project do
     [
@@ -25,7 +25,8 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
       name: "Membrane FFmpeg SWResample plugin",
       source_url: @github_url,
       homepage_url: "https://membrane.stream",
-      docs: docs()
+      docs: docs(),
+      aliases: [docs: ["docs", &append_llms_links/1]]
     ]
   end
 
@@ -52,7 +53,7 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
       {:membrane_file_plugin, "~> 0.16.0", only: :test},
       {:membrane_mp3_mad_plugin, "~> 0.18.2", only: :test},
       # Development
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:ex_doc, ">= 0.40.0", only: :dev, runtime: false},
       {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
       {:credo, ">= 0.0.0", only: :dev, runtime: false}
     ]
@@ -96,9 +97,30 @@ defmodule Membrane.FFmpeg.SWResample.Mixfile do
     [
       main: "readme",
       extras: ["README.md", "LICENSE"],
-      formatters: ["html"],
       source_ref: "v#{@version}",
       nest_modules_by_prefix: [Membrane.FFmpeg.SWResample]
     ]
+  end
+
+  defp append_llms_links(_args) do
+    output_dir = docs()[:output] || "doc"
+    path = Path.join(output_dir, "llms.txt")
+
+    if File.exists?(path) do
+      existing = File.read!(path)
+
+      footer = """
+
+
+      ## See Also
+
+      - [Membrane Framework AI Skill](https://hexdocs.pm/membrane_core/skill.md)
+      - [Membrane Core](https://hexdocs.pm/membrane_core/llms.txt)
+      """
+
+      File.write!(path, String.trim_trailing(existing) <> footer)
+    else
+      IO.warn("#{path} not found — llms.txt was not generated, check your ex_doc configuration")
+    end
   end
 end
