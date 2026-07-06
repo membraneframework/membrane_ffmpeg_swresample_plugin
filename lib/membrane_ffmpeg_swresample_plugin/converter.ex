@@ -5,7 +5,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   """
 
   use Membrane.Filter
-  import Mockery.Macro
+  use Mockery.Macro
 
   require Membrane.Logger
 
