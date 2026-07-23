@@ -12,8 +12,14 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   alias __MODULE__.Native
   alias Membrane.{Buffer, RawAudio, RemoteStream}
 
-  @supported_sample_format [:u8, :s16le, :s32le, :f32le, :f64le]
+  @supported_sample_format [:u8, :s16le, :s24le, :s32le, :f32le, :f64le]
   @supported_channels [1, 2]
+
+  @type output_stream_format :: %{
+          sample_format: RawAudio.SampleFormat.t() | :keep,
+          sample_rate: RawAudio.sample_rate_t() | :keep,
+          channels: RawAudio.channels_t() | :keep
+        }
 
   def_output_pad :output,
     accepted_format:
@@ -25,8 +31,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       any_of(
         %RawAudio{sample_format: format, channels: channels}
         when format in @supported_sample_format and channels in @supported_channels,
-        %RemoteStream{content_format: format} when format in [nil, RawAudio],
-        %RawAudio{sample_format: :s24le, channels: channels} when channels in @supported_channels
+        %RemoteStream{content_format: format} when format in [nil, RawAudio]
       )
 
   def_options input_stream_format: [
@@ -39,9 +44,10 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
                 """
               ],
               output_stream_format: [
-                spec: RawAudio.t(),
+                spec: output_stream_format(),
                 description: """
-                Audio stream format for output pad
+                Defines how the output stream format will be determined. If a field is set to
+                `:keep`, then it's value will be preserved from input stream format.
                 """
               ]
 
@@ -54,30 +60,26 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     end
 
     case options.output_stream_format do
-      %RawAudio{} -> :ok
-      _other -> raise ":output_stream_format must be %RawAudio{}"
+      %{sample_format: _format, sample_rate: _rate, channels: _channels} ->
+        :ok
+
+      _other ->
+        raise ":output_stream_format must be a map with :sample_format, :sample_rate and :channels"
     end
 
     state =
-      options
-      |> Map.from_struct()
-      |> Map.merge(%{
+      %{
         native: nil,
         queue: <<>>,
+        input_stream_format: options.input_stream_format,
         input_stream_format_provided?: options.input_stream_format != nil,
+        options_output_stream_format: options.output_stream_format,
+        resolved_output_stream_format: nil,
         pts_queue: [],
         last_valid_pts: nil
-      })
+      }
 
     {[], state}
-  end
-
-  @impl true
-  def handle_setup(_ctx, %{input_stream_format_provided?: false} = state), do: {[], state}
-
-  def handle_setup(_ctx, state) do
-    native = mk_native!(state.input_stream_format, state.output_stream_format)
-    {[], %{state | native: native}}
   end
 
   @impl true
@@ -94,9 +96,17 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
         _ctx,
         %{input_stream_format: stored_stream_format} = state
       ) do
-    native = mk_native!(stored_stream_format, state.output_stream_format)
-    state = %{state | native: native}
-    {[stream_format: {:output, state.output_stream_format}], state}
+    resolved_output_stream_format =
+      resolve_output_stream_format(stored_stream_format, state.options_output_stream_format)
+
+    native = mk_native!(stored_stream_format, resolved_output_stream_format)
+
+    {[stream_format: {:output, resolved_output_stream_format}],
+     %{
+       state
+       | native: native,
+         resolved_output_stream_format: resolved_output_stream_format
+     }}
   end
 
   @impl true
@@ -132,23 +142,22 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       end
 
     # create new converter
-    native = mk_native!(stream_format, state.output_stream_format)
+    resolved_output_stream_format =
+      resolve_output_stream_format(stream_format, state.options_output_stream_format)
+
+    native = mk_native!(stream_format, resolved_output_stream_format)
 
     state = %{
       state
       | native: native,
         input_stream_format: stream_format,
+        resolved_output_stream_format: resolved_output_stream_format,
         queue: <<>>,
         pts_queue: [],
         last_valid_pts: nil
     }
 
-    {flushed_actions ++ [stream_format: {:output, state.output_stream_format}], state}
-  end
-
-  @impl true
-  def handle_playing(_ctx, state) do
-    {[stream_format: {:output, state.output_stream_format}], state}
+    {flushed_actions ++ [stream_format: {:output, resolved_output_stream_format}], state}
   end
 
   @impl true
@@ -157,7 +166,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
 
     state =
       Map.update!(state, :pts_queue, fn pts_queue ->
-        pts_queue ++ [{input_pts, byte_size(payload) * state.output_stream_format.sample_rate}]
+        pts_queue ++
+          [{input_pts, byte_size(payload) * state.resolved_output_stream_format.sample_rate}]
       end)
 
     conversion_result =
@@ -199,6 +209,26 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
     end
   end
 
+  defp resolve_output_stream_format(input_format, output_format) do
+    %RawAudio{
+      sample_format:
+        if(output_format.sample_format == :keep,
+          do: input_format.sample_format,
+          else: output_format.sample_format
+        ),
+      sample_rate:
+        if(output_format.sample_rate == :keep,
+          do: input_format.sample_rate,
+          else: output_format.sample_rate
+        ),
+      channels:
+        if(output_format.channels == :keep,
+          do: input_format.channels,
+          else: output_format.channels
+        )
+    }
+  end
+
   defp check_dropped_frames(state) do
     dropped_bytes = byte_size(state.queue)
 
@@ -214,9 +244,9 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   defp mk_native!(
          %RawAudio{
            sample_format: in_sample_format,
-           sample_rate: input_rate,
-           channels: input_channels
-         } = input_format,
+           sample_rate: in_rate,
+           channels: in_channels
+         } = in_format,
          %RawAudio{
            sample_format: out_sample_format,
            sample_rate: out_rate,
@@ -225,8 +255,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
        ) do
     mockable(Native).create(
       in_sample_format |> RawAudio.SampleFormat.serialize(),
-      input_rate,
-      input_channels,
+      in_rate,
+      in_channels,
       out_sample_format |> RawAudio.SampleFormat.serialize(),
       out_rate,
       out_channels
@@ -238,7 +268,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       {:error, reason} ->
         raise """
         Error while initializing native converter: #{inspect(reason)}
-        Input format: #{inspect(input_format)}
+        Input format: #{inspect(in_format)}
         Output format: #{inspect(out_format)}
         """
     end
@@ -266,7 +296,7 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   defp calculate_output_duration(converted, state) do
-    byte_size(converted) / RawAudio.frame_size(state.output_stream_format) *
+    byte_size(converted) / RawAudio.frame_size(state.resolved_output_stream_format) *
       (RawAudio.frame_size(state.input_stream_format) * state.input_stream_format.sample_rate)
   end
 
