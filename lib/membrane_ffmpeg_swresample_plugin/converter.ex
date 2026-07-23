@@ -16,9 +16,9 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   @supported_channels [1, 2]
 
   @type output_stream_format :: %{
-          sample_format: RawAudio.SampleFormat.t() | :keep,
-          sample_rate: RawAudio.sample_rate_t() | :keep,
-          channels: RawAudio.channels_t() | :keep
+          optional(:sample_format) => RawAudio.SampleFormat.t() | :keep,
+          optional(:sample_rate) => RawAudio.sample_rate_t() | :keep,
+          optional(:channels) => RawAudio.channels_t() | :keep
         }
 
   def_output_pad :output,
@@ -46,8 +46,8 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
               output_stream_format: [
                 spec: output_stream_format(),
                 description: """
-                Defines how the output stream format will be determined. If a field is set to
-                `:keep`, then it's value will be preserved from input stream format.
+                Defines how the output stream format will be determined. If a field is not set or
+                set to `:keep`, then its value will be preserved from input stream format.
                 """
               ]
 
@@ -57,14 +57,6 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
       %RawAudio{} -> :ok
       nil -> :ok
       _other -> raise ":input_stream_format must be nil or %RawAudio{}"
-    end
-
-    case options.output_stream_format do
-      %{sample_format: _format, sample_rate: _rate, channels: _channels} ->
-        :ok
-
-      _other ->
-        raise ":output_stream_format must be a map with :sample_format, :sample_rate and :channels"
     end
 
     state =
@@ -212,17 +204,17 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   defp resolve_output_stream_format(input_format, output_format) do
     %RawAudio{
       sample_format:
-        if(output_format.sample_format == :keep,
+        if(Map.get(output_format, :sample_format, :keep) == :keep,
           do: input_format.sample_format,
           else: output_format.sample_format
         ),
       sample_rate:
-        if(output_format.sample_rate == :keep,
+        if(Map.get(output_format, :sample_rate, :keep) == :keep,
           do: input_format.sample_rate,
           else: output_format.sample_rate
         ),
       channels:
-        if(output_format.channels == :keep,
+        if(Map.get(output_format, :channels, :keep) == :keep,
           do: input_format.channels,
           else: output_format.channels
         )
