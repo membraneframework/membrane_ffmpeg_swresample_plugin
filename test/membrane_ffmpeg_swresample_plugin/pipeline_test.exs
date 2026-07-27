@@ -10,7 +10,13 @@ defmodule Membrane.FFmpeg.SWResample.PipelineTest do
   @tag :tmp_dir
   test "surrounded by testing source and sink", %{tmp_dir: tmp_dir} do
     input_stream_format = %RawAudio{sample_format: :u8, sample_rate: 8_000, channels: 1}
-    output_stream_format = %RawAudio{sample_format: :s16le, sample_rate: 16_000, channels: 2}
+
+    output_stream_format = %Converter.OutputFormat{
+      sample_format: :s16le,
+      sample_rate: 16_000,
+      channels: 2
+    }
+
     frames = 8_000
 
     input_time = RawAudio.frames_to_time(frames, input_stream_format)
@@ -34,7 +40,12 @@ defmodule Membrane.FFmpeg.SWResample.PipelineTest do
     Testing.Pipeline.terminate(pipeline)
 
     assert result = File.read!(output_path)
-    assert byte_size(result) == RawAudio.time_to_bytes(input_time, output_stream_format)
+
+    assert byte_size(result) ==
+             RawAudio.time_to_bytes(
+               input_time,
+               struct!(RawAudio, Map.from_struct(output_stream_format))
+             )
   end
 
   @tag :tmp_dir
@@ -42,7 +53,12 @@ defmodule Membrane.FFmpeg.SWResample.PipelineTest do
     tmp_dir: tmp_dir
   } do
     input_stream_format = %RawAudio{sample_format: :u8, sample_rate: 8_000, channels: 1}
-    output_stream_format = %{sample_format: :s16le, sample_rate: :keep, channels: :keep}
+
+    output_stream_format = %Converter.OutputFormat{
+      sample_format: :s16le,
+      sample_rate: :keep,
+      channels: :keep
+    }
 
     resolved_output_stream_format = %RawAudio{
       sample_format: :s16le,
