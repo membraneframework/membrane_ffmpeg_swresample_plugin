@@ -211,23 +211,13 @@ defmodule Membrane.FFmpeg.SWResample.Converter do
   end
 
   defp resolve_output_stream_format(input_format, output_format) do
-    %RawAudio{
-      sample_format:
-        if(output_format.sample_format == :keep,
-          do: input_format.sample_format,
-          else: output_format.sample_format
-        ),
-      sample_rate:
-        if(output_format.sample_rate == :keep,
-          do: input_format.sample_rate,
-          else: output_format.sample_rate
-        ),
-      channels:
-        if(output_format.channels == :keep,
-          do: input_format.channels,
-          else: output_format.channels
-        )
-    }
+    overrides =
+      output_format |> Map.from_struct() |> Map.reject(fn {_key, val} -> val == :keep end)
+
+    merged =
+      input_format |> Map.from_struct() |> Map.merge(overrides)
+
+    struct!(RawAudio, merged)
   end
 
   defp check_dropped_frames(state) do

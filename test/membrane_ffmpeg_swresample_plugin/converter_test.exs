@@ -24,7 +24,8 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       state: %{
         input_stream_format: nil,
         input_stream_format_provided?: false,
-        options_output_stream_format: Map.from_struct(@u8_format),
+        options_output_stream_format:
+          Map.from_struct(@u8_format) |> then(&struct!(Converter.OutputFormat, &1)),
         resolved_output_stream_format: @u8_format,
         frames_per_buffer: 2048,
         native: nil,
