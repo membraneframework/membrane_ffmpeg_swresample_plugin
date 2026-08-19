@@ -24,7 +24,9 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
       state: %{
         input_stream_format: nil,
         input_stream_format_provided?: false,
-        output_stream_format: @u8_format,
+        options_output_stream_format:
+          Map.from_struct(@u8_format) |> then(&struct!(Converter.OutputFormat, &1)),
+        resolved_output_stream_format: @u8_format,
         frames_per_buffer: 2048,
         native: nil,
         queue: <<>>,
@@ -41,7 +43,7 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
 
     assert {actions, new_state} = @module.handle_stream_format(:input, @s16le_format, nil, state)
 
-    assert actions == [stream_format: {:output, state.output_stream_format}]
+    assert actions == [stream_format: {:output, state.resolved_output_stream_format}]
 
     assert %{native: :mock_handle} = new_state
 
@@ -61,56 +63,6 @@ defmodule Membrane.FFmpeg.SWResample.ConverterTest do
   end
 
   setup_all :initial_state
-
-  describe "handle_setup/2" do
-    test "should do nothing if input stream format is not set", %{state: state} do
-      assert @module.handle_setup(nil, state) == {[], state}
-      refute_called!(@native, :create)
-    end
-
-    test "create native converter if stream format is set", %{state: initial_state} do
-      state = %{
-        initial_state
-        | input_stream_format: @s16le_format,
-          input_stream_format_provided?: true
-      }
-
-      Mockery.History.enable_history()
-      mock(@native, [create: 6], {:ok, :mock_handle})
-
-      assert {[], new_state} = @module.handle_setup(:stopped, state)
-
-      assert %{native: :mock_handle} = new_state
-
-      input_fmt = @s16le_format.sample_format |> RawAudio.SampleFormat.serialize()
-      input_rate = @s16le_format.sample_rate
-      input_channel = @s16le_format.channels
-      out_fmt = @u8_format.sample_format |> RawAudio.SampleFormat.serialize()
-      out_rate = @u8_format.sample_rate
-      out_channel = @u8_format.channels
-
-      assert_called!(
-        @native,
-        :create,
-        args: [^input_fmt, ^input_rate, ^input_channel, ^out_fmt, ^out_rate, ^out_channel],
-        times: 1
-      )
-    end
-
-    test "if native cannot be created returns an error with reason and untouched state", %{
-      state: initial_state
-    } do
-      state = %{
-        initial_state
-        | input_stream_format: @s16le_format,
-          input_stream_format_provided?: true
-      }
-
-      mock(@native, [create: 6], {:error, :reason})
-
-      assert_raise RuntimeError, fn -> @module.handle_setup(nil, state) end
-    end
-  end
 
   describe "handle_stream_format/4" do
     test "given new stream format when input_stream_format were not set should create native resource and store it in state",

@@ -15,7 +15,11 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
       |> child(:decoder_mp3, MP3.MAD.Decoder)
       |> child(:converter, %Converter{
         input_stream_format: %RawAudio{channels: 2, sample_format: :s24le, sample_rate: 48_000},
-        output_stream_format: %RawAudio{channels: 1, sample_format: :s16le, sample_rate: 44_100}
+        output_stream_format: %Converter.OutputFormat{
+          channels: 1,
+          sample_format: :s16le,
+          sample_rate: 44_100
+        }
       })
       |> child(:sink, Membrane.Testing.Sink)
 
@@ -27,7 +31,13 @@ defmodule Membrane.FFmpeg.SWResample.PtsForwardTest do
 
   test "pts forward test" do
     input_stream_format = %RawAudio{sample_format: :s16le, sample_rate: 16_000, channels: 2}
-    output_stream_format = %RawAudio{sample_format: :s32le, sample_rate: 32_000, channels: 2}
+
+    output_stream_format = %Converter.OutputFormat{
+      sample_format: :s32le,
+      sample_rate: 32_000,
+      channels: 2
+    }
+
     # 32 frames * 2048 bytes
     path = "test/fixtures/input_s16le_stereo_16khz.raw"
 
