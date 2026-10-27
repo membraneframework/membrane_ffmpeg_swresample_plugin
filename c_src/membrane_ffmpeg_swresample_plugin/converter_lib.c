@@ -111,8 +111,17 @@ char *lib_convert(ConverterState *state, uint8_t *input, int input_size,
   uint8_t **src_data = NULL;
   uint8_t **dst_data = NULL;
   int src_linesize, dst_linesize;
-  int src_nb_samples = input_size / state->src_nb_channels /
-                       av_get_bytes_per_sample(state->src_sample_fmt);
+  int frame_size = state->src_nb_channels *
+                   av_get_bytes_per_sample(state->src_sample_fmt);
+
+  // The whole input is copied into a buffer sized by the number of whole
+  // frames, so a partial frame would overflow it.
+  if (frame_size <= 0 || input_size % frame_size != 0)
+  {
+    return free_conversion_data("invalid_input_size", state, input, NULL, NULL);
+  }
+
+  int src_nb_samples = input_size / frame_size;
 
   if (0 > av_samples_alloc_array_and_samples(
               &src_data, &src_linesize, state->src_nb_channels, src_nb_samples,
